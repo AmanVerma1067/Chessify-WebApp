@@ -166,8 +166,8 @@ python main.py
 ## 👨‍💻 Author
 
 **Aman Verma**
-GitHub: [@AmanVerma1067](https://github.com/AmanVerma1067)
-LinkedIn: [linkedin](https://linkedin.com/in/amanverma1067)
+- GitHub: [@AmanVerma1067](https://github.com/AmanVerma1067)
+- LinkedIn: [linkedin](https://linkedin.com/in/amanverma1067)
 
 ---
 
