@@ -22,7 +22,7 @@ def get_bot_move():
     if board.fullmove_number <= 10:
         move = book.get_move(board)
     if move is None:
-        move = get_stockfish_move(board, time_limit=0.5, elo=1500)
+        move = get_stockfish_move(board, time_limit=0.5, elo=1800)
     if move is None:
         move = find_best_move(board, depth=3)
 
