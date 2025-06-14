@@ -2,3 +2,4 @@
 python-chess
 flask
 flask-cors
+stockfish
