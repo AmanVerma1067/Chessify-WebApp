@@ -1,30 +1,47 @@
-# Chessify ai web app
+# ♟️ Chessify AI
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
+Chessify AI is a modern web-based chess game built with **Next.js 13+**, featuring AI-powered moves, clean UI, drag-and-drop + click-to-move functionality, and a contextual sidebar with chat, move history, and game controls.
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/aman-vermas-projects-7ed139b9/v0-chessify-ai-web-app)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/fic4kvadaOu)
+## 🚀 Features
 
-## Overview
+- 🧠 AI Opponent using public chess API
+- 🎮 Interactive chessboard (drag & drop + click-to-move)
+- 💬 Chat panel with bot move explanations
+- 📋 Move history in algebraic notation
+- ⏱️ Game timer and controls (undo, resign, restart)
+- 📊 Material advantage indicator
+- ⚡ Endgame detection (checkmate, stalemate, draw)
+- 🌑 Dark mode UI only
+- 📱 Fully responsive layout
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
+## 🛠️ Tech Stack
 
-## Deployment
+- **Next.js 13 (App Router)**
+- **React + TypeScript**
+- **Tailwind CSS + Shadcn UI**
+- **chess.js** for game logic
+- **Framer Motion** for animations
+- **Public Chess API** for bot integration
 
-Your project is live at:
+## 📁 Project Structure
 
-**[https://vercel.com/aman-vermas-projects-7ed139b9/v0-chessify-ai-web-app](https://vercel.com/aman-vermas-projects-7ed139b9/v0-chessify-ai-web-app)**
+```plaintext
+app/          # Pages and layouts
+components/   # UI and game components
+hooks/        # Custom React hooks
+lib/          # Utilities and helpers
+public/       # Static assets and piece images
+````
 
-## Build your app
+## ⚙️ Setup
 
-Continue building your app on:
+```bash
+git clone https://github.com/your-username/chessify-ai.git
+cd chessify-ai
+npm install
+npm run dev
+```
 
-**[https://v0.dev/chat/projects/fic4kvadaOu](https://v0.dev/chat/projects/fic4kvadaOu)**
+## 📄 License
 
-## How It Works
-
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+MIT © [Aman Verma](https://github.com/AmanVerma1067)
