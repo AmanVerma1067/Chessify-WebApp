@@ -1,0 +1,4 @@
+# pygame
+python-chess
+flask
+flask-cors
