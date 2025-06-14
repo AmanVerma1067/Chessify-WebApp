@@ -157,8 +157,8 @@ python main.py
 ## ✨ Future Improvements
 
 * Multiplayer mode via socket
-* Move history and undo
-* Sound effects and animations
+* Adjustable elo bot
+* Sound effects
 * Save/load games
 
 ---
@@ -166,8 +166,8 @@ python main.py
 ## 👨‍💻 Author
 
 **Aman Verma**
-GitHub: [@aman1067](https://github.com/aman1067)
-LinkedIn: [linkedin.com/in/aman1067](https://linkedin.com/in/aman1067)
+GitHub: [@AmanVerma1067](https://github.com/AmanVerma1067)
+LinkedIn: [linkedin](https://linkedin.com/in/amanverma1067)
 
 ---
 
