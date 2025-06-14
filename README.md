@@ -1,8 +1,3 @@
-Here’s a **production-ready `README.md`** for your chess bot web app (frontend + backend) with deployment details, tech stack, and usage instructions:
-
----
-
-```md
 # ♟️ Chessify AI - Web Chess Bot
 
 A web-based chess-playing application built with **Next.js (React)** on the frontend and **Flask + Stockfish** on the backend. This app lets users play against a bot that calculates moves using a combination of custom logic and the Stockfish engine.
@@ -11,7 +6,7 @@ A web-based chess-playing application built with **Next.js (React)** on the fron
 
 ## 🌐 Live Demo
 
-- **Frontend:** [https://chessify.vercel.app](https://chessify.vercel.app)
+- **Frontend:** [chessify.aman1067.xyz](http://chessify.aman1067.xyz/)
 - **Backend API:** [https://chess-backend-tvdo.onrender.com](https://chess-backend-tvdo.onrender.com)
 
 ---
@@ -179,11 +174,3 @@ LinkedIn: [linkedin.com/in/aman1067](https://linkedin.com/in/aman1067)
 ## 📜 License
 
 MIT License
-
-```
-
----
-
-Let me know if you'd like badges, GIF demos, or to split the README into two for frontend/backend separately.
-```
-
