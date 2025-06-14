@@ -1,7 +1,8 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { Chess, type Move, type Square } from "chess.js"
+import { createContext, useContext, useState, useRef, useEffect, type ReactNode } from "react"
+import { Chess, SQUARES, type Move, type Square } from "chess.js"
+
 
 type GameMode = "blitz" | "rapid" | "unlimited"
 type GameState = "playing" | "check" | "checkmate" | "stalemate" | "draw" | "timeout"
@@ -25,12 +26,14 @@ interface GameContextType {
   timeBlack: number
   isRunning: boolean
   timeoutColor: TimeoutColor
+  boardFlipped: boolean
   makeMove: (from: Square, to: Square, promotion?: string) => boolean
   selectPiece: (square: Square | null) => void
   undoMove: () => void
   resetGame: () => void
   resignGame: () => void
   setGameMode: (mode: GameMode) => void
+  flipBoard: () => void
 }
 
 const GameContext = createContext<GameContextType | undefined>(undefined)
@@ -43,81 +46,53 @@ export function useGame() {
   return context
 }
 
-// 🔁 Bot move API integration (Edit this URL to your backend)
-const API_URL = "https://chess-backend-tvdo.onrender.com/get_bot_move"
+// ========== BOT SETTINGS ==========
+const DEPTH = 1
 
-async function getBotMove(fen: string): Promise<{ move: string; new_fen: string }> {
+const BOT_MESSAGES = [
+  "Hmm, interesting move.", "Let's see where this goes.", "Thinking ahead…", "I'm gaining control.",
+  "This position is complex.", "Careful! 😏", "Interesting move! Let's see what you do next.",
+  "I'm thinking... and here's my reply.", "That was a clever move!", "Trying to keep up with your strategy.",
+  "Let's spice things up.", "Your turn! Make it count.", "I see what you're planning.", "Nice! But can you keep it up?",
+  "That was unexpected!", "Let's keep the game going.", "I'm enjoying this match.", "Good move! Now it's my turn."
+]
+
+function getRandomBotMessage(): string {
+  return BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)]
+}
+
+async function getBotMove(fen: string) {
   try {
-    const res = await fetch(API_URL, {
+    const res = await fetch("https://chess-api.com/v1", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fen }),
-    })
+      body: JSON.stringify({ fen, depth: DEPTH, maxThinkingTime: 100 })
+    });
 
-    if (!res.ok) throw new Error("Failed to fetch bot move from server")
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`API Error ${res.status}: ${errorText}`);
+    }
 
-    return await res.json()
-  } catch (error) {
-    console.error("Fallback: Bot API failed:", error)
+    return await res.json();
+  } catch (e) {
+    console.error("API call failed:", e);
+    // Fallback logic...  
     const game = new Chess(fen)
-    const legal = game.moves({ verbose: true })
-    if (legal.length === 0) throw new Error("No moves left")
+    const moves = game.moves({ verbose: true })
+    const randomMove = moves[Math.floor(Math.random() * moves.length)]
+    game.move(randomMove)
 
-    const move = legal[Math.floor(Math.random() * legal.length)]
-    game.move(move)
     return {
-      move: `${move.from}${move.to}${move.promotion ?? ""}`,
+      move: `${randomMove.from}${randomMove.to}${randomMove.promotion || ""}`,
       new_fen: game.fen(),
+      eval: 0,
+      san: randomMove.san,
     }
   }
 }
 
-function generateBotMessage(game: Chess, lastMove: Move | null, moveCount: number): string | null {
-  const shouldGenerate = Math.random() < 0.4 || moveCount <= 2
-  if (!shouldGenerate && moveCount > 2) return null
-
-  if (moveCount < 8) {
-    const opening = [
-      "Opening up nicely!", "Controlling the center.", "Let's play classical chess!",
-      "Knights before bishops!", "Time to castle soon!", "Solid foundation first."
-    ]
-    return opening[Math.floor(Math.random() * opening.length)]
-  }
-
-  if (lastMove?.captured) {
-    const captures = [
-      `Captured your ${getPieceName(lastMove.captured)}!`, "Material matters!", "Piece down!"
-    ]
-    return captures[Math.floor(Math.random() * captures.length)]
-  }
-
-  if (game.isCheck()) {
-    const checks = [
-      "Check! Defend wisely.", "Watch your king!", "King under fire!"
-    ]
-    return checks[Math.floor(Math.random() * checks.length)]
-  }
-
-  if (moveCount < 25) {
-    const mid = [
-      "Position getting spicy!", "Tactics incoming!", "Planning my strategy.",
-      "Midgame muscle now!", "Focus mode on."
-    ]
-    return mid[Math.floor(Math.random() * mid.length)]
-  }
-
-  const end = [
-    "Endgame is tricky!", "It's now or never!", "Precision matters now!"
-  ]
-  return end[Math.floor(Math.random() * end.length)]
-}
-
-function getPieceName(piece: string): string {
-  return {
-    p: "pawn", n: "knight", b: "bishop", r: "rook", q: "queen", k: "king"
-  }[piece] || "piece"
-}
-
+// ========== GAME PROVIDER ==========
 export function GameProvider({ children }: { children: ReactNode }) {
   const [game, setGame] = useState(new Chess())
   const [fen, setFen] = useState(game.fen())
@@ -130,162 +105,203 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [legalMoves, setLegalMoves] = useState<Record<string, Square[]>>({})
   const [selectedPiece, setSelectedPiece] = useState<Square | null>(null)
   const [botThinking, setBotThinking] = useState(false)
-  const [botMessage, setBotMessage] = useState("Hello! I'm Chessify AI by Aman Verma. Ready?")
-  const [timeWhite, setTimeWhite] = useState(600)
-  const [timeBlack, setTimeBlack] = useState(600)
+  const [botMessage, setBotMessage] = useState<string | null>(
+    "Hello! I'm Chessify AI v2 by Aman Verma. Ready for an enhanced chess experience?"
+  )
+  const [timeWhite, setTimeWhite] = useState(gameMode === "blitz" ? 300 : 600)
+  const [timeBlack, setTimeBlack] = useState(gameMode === "blitz" ? 300 : 600)
   const [isRunning, setIsRunning] = useState(true)
   const [timeoutColor, setTimeoutColor] = useState<TimeoutColor>(null)
+  const [boardFlipped, setBoardFlipped] = useState(false)
 
+  const [lastBotMoveNumber, setLastBotMoveNumber] = useState(0)
+
+  // Legal moves tracking
+  useEffect(() => {
+    const moves: Record<string, Square[]> = {}
+    SQUARES.forEach((square) => {
+      const legal = game.moves({ square, verbose: true })
+      if (legal.length > 0) {
+        moves[square] = legal.map((m) => m.to as Square)
+      }
+    })
+    setLegalMoves(moves)
+  }, [fen, game])
+
+  // Game state check
+  useEffect(() => {
+    if (game.isCheckmate()) {
+      setGameState("checkmate")
+    } else if (game.isStalemate()) {
+      setGameState("stalemate")
+    } else if (game.isDraw()) {
+      setGameState("draw")
+    } else if (game.isCheck()) {
+      setGameState("check")
+    } else {
+      setGameState("playing")
+    }
+  }, [fen, game])
+
+  // Bot move trigger
+// Add useRef for fresh state access
+const fenRef = useRef(fen);
 useEffect(() => {
-  const moves: Record<string, Square[]> = {}
+  fenRef.current = fen;
+}, [fen]);
 
-  const board = game.board()
+// Fixed bot move useEffect
+useEffect(() => {
+  if (game.turn() === "b" && gameState === "playing" && !botThinking) {
+    setBotThinking(true);
+    const currentFen = fenRef.current; // Get fresh FEN
+    const thinkTime = Math.floor(Math.random() * 2000) + 1000;
 
-  for (let rank = 0; rank < 8; rank++) {
-    for (let file = 0; file < 8; file++) {
-      const piece = board[rank][file]
-      if (piece) {
-        // Convert file + rank to square (e.g., 4,6 => "e2")
-        const fileChar = String.fromCharCode("a".charCodeAt(0) + file)
-        const rankNum = 8 - rank
-        const square = `${fileChar}${rankNum}` as Square
+    setTimeout(async () => {
+      try {
+        const { move, new_fen } = await getBotMove(currentFen);
+        const from = move.slice(0, 2) as Square;
+        const to = move.slice(2, 4) as Square;
+        const promotion = move.length > 4 ? move[4] : undefined;
 
-        const legalMovesForPiece = game.moves({ square, verbose: true })
-        if (legalMovesForPiece.length > 0) {
-          moves[square] = legalMovesForPiece.map((move) => move.to as Square)
-        }
+        // Create new game instance
+        const newGame = new Chess(currentFen);
+        newGame.move({ from, to, promotion });
+        
+        // Update all state consistently
+        setGame(newGame);
+        setFen(newGame.fen());
+        setHistory(newGame.history({ verbose: true }));
+        setCurrentMove(newGame.history().length);
+        setLastMove({ from, to });
+        setBotMessage(getRandomBotMessage());
+      } catch (e) {
+        console.error("Bot move error:", e);
+      } finally {
+        setBotThinking(false);
       }
-    }
+    }, thinkTime);
   }
+}, [fen, gameState, botThinking]); // Only depend on these
 
-  setLegalMoves(moves)
-}, [game, fen])
-
-
+  // Timer
   useEffect(() => {
-    if (game.isCheckmate()) setGameState("checkmate")
-    else if (game.isStalemate()) setGameState("stalemate")
-    else if (game.isDraw()) setGameState("draw")
-    else if (game.isCheck()) setGameState("check")
-    else setGameState("playing")
-  }, [fen])
-
-  useEffect(() => {
-    if (game.turn() !== playerColor && gameState === "playing" && !botThinking) {
-      setBotThinking(true)
-      const thinkTime = Math.random() * 2000 + 1000
-      setTimeout(async () => {
-        try {
-          const { move } = await getBotMove(game.fen())
-          const from = move.slice(0, 2) as Square
-          const to = move.slice(2, 4) as Square
-          const promotion = move.length > 4 ? move[4] : undefined
-
-          const result = game.move({ from, to, promotion })
-          if (result) {
-            setFen(game.fen())
-            setHistory(game.history({ verbose: true }))
-            setCurrentMove(game.history().length)
-            setLastMove({ from, to })
-            const msg = generateBotMessage(game, result, game.history().length)
-            if (msg) setBotMessage(msg)
-          }
-        } catch (err) {
-          console.error("Bot failed to move:", err)
-        } finally {
-          setBotThinking(false)
+    let timer: NodeJS.Timeout | null = null
+    if (isRunning && gameState === "playing" && gameMode !== "unlimited") {
+      timer = setInterval(() => {
+        if (game.turn() === "w") {
+          setTimeWhite((prev) => (prev <= 1 ? (setGameState("timeout"), setTimeoutColor("w"), setIsRunning(false), 0) : prev - 1))
+        } else {
+          setTimeBlack((prev) => (prev <= 1 ? (setGameState("timeout"), setTimeoutColor("b"), setIsRunning(false), 0) : prev - 1))
         }
-      }, thinkTime)
+      }, 1000)
     }
-  }, [fen, gameState, botThinking])
+    return () => {
+      if (timer) clearInterval(timer)
+    }
+  }, [isRunning, gameState, game, gameMode])
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (!isRunning || gameMode === "unlimited" || gameState !== "playing") return
-      if (game.turn() === "w") {
-        setTimeWhite((t) => {
-          if (t <= 1) {
-            setGameState("timeout")
-            setTimeoutColor("w")
-            setIsRunning(false)
-            return 0
-          }
-          return t - 1
-        })
-      } else {
-        setTimeBlack((t) => {
-          if (t <= 1) {
-            setGameState("timeout")
-            setTimeoutColor("b")
-            setIsRunning(false)
-            return 0
-          }
-          return t - 1
-        })
-      }
-    }, 1000)
-    return () => clearInterval(interval)
-  }, [isRunning, gameState, gameMode])
-
-  const makeMove = (from: Square, to: Square, promotion?: string): boolean => {
-    const move = game.move({ from, to, promotion })
-    if (!move) return false
-    setFen(game.fen())
-    setHistory(game.history({ verbose: true }))
-    setCurrentMove(game.history().length)
-    setLastMove({ from, to })
-    setSelectedPiece(null)
-    return true
+const makeMove = (from: Square, to: Square, promotion?: string): boolean => {
+  try {
+    // Create new game instance
+    const newGame = new Chess(game.fen());
+    const move = newGame.move({ from, to, promotion: promotion || undefined });
+    
+    if (move) {
+      // Update all state from new instance
+      setGame(newGame);
+      setFen(newGame.fen());
+      setHistory(newGame.history({ verbose: true }));
+      setCurrentMove(newGame.history().length);
+      setLastMove({ from, to });
+      setSelectedPiece(null);
+      return true;
+    }
+  } catch (e) {
+    console.error("Invalid move", e);
   }
+  return false;
+};
+
+  const selectPiece = (square: Square | null) => setSelectedPiece(square)
 
   const undoMove = () => {
-    if (game.history().length === 0) return
-    game.undo()
-    if (game.turn() !== playerColor) game.undo()
-    setFen(game.fen())
-    setHistory(game.history({ verbose: true }))
-    setCurrentMove(game.history().length)
-    setLastMove(null)
+    if (game.history().length > 0) {
+      game.undo()
+      game.undo()
+      setFen(game.fen())
+      setHistory(game.history({ verbose: true }))
+      setCurrentMove(game.history().length)
+      setLastMove(null)
+      setBotMessage("Move undone. Your turn again!")
+    }
   }
 
   const resetGame = () => {
-    const g = new Chess()
-    setGame(g)
-    setFen(g.fen())
+    const freshGame = new Chess()
+    setGame(freshGame)
+    setFen(freshGame.fen())
     setHistory([])
     setCurrentMove(0)
     setGameState("playing")
     setLastMove(null)
-    setBotMessage("Fresh game, fresh opportunities!")
     setSelectedPiece(null)
-    setTimeoutColor(null)
-    setTimeWhite(gameMode === "blitz" ? 300 : gameMode === "rapid" ? 600 : Number.POSITIVE_INFINITY)
-    setTimeBlack(gameMode === "blitz" ? 300 : gameMode === "rapid" ? 600 : Number.POSITIVE_INFINITY)
+    setBotMessage("New game started. Good luck!")
+    setLastBotMoveNumber(0)
+
+    if (gameMode === "blitz") {
+      setTimeWhite(300)
+      setTimeBlack(300)
+    } else if (gameMode === "rapid") {
+      setTimeWhite(600)
+      setTimeBlack(600)
+    } else {
+      setTimeWhite(Infinity)
+      setTimeBlack(Infinity)
+    }
+
     setIsRunning(true)
   }
 
   const resignGame = () => {
     setGameState("checkmate")
     setIsRunning(false)
-    setBotMessage("You resigned. Good game!")
+    setBotMessage("You resigned. Want to try again?")
   }
+
+  const flipBoard = () => setBoardFlipped(!boardFlipped)
 
   const changeGameMode = (mode: GameMode) => {
     setGameMode(mode)
-    setTimeout(() => resetGame(), 0)
+    resetGame()
   }
 
-  return (
-    <GameContext.Provider
-      value={{
-        game, fen, history, currentMove, gameState, playerColor,
-        gameMode, lastMove, legalMoves, selectedPiece, botThinking,
-        botMessage, timeWhite, timeBlack, isRunning, timeoutColor,
-        makeMove, selectPiece: setSelectedPiece, undoMove,
-        resetGame, resignGame, setGameMode: changeGameMode,
-      }}
-    >
-      {children}
-    </GameContext.Provider>
-  )
+  const value: GameContextType = {
+    game,
+    fen,
+    history,
+    currentMove,
+    gameState,
+    playerColor,
+    gameMode,
+    lastMove,
+    legalMoves,
+    selectedPiece,
+    botThinking,
+    botMessage,
+    timeWhite,
+    timeBlack,
+    isRunning,
+    timeoutColor,
+    boardFlipped,
+    makeMove,
+    selectPiece,
+    undoMove,
+    resetGame,
+    resignGame,
+    setGameMode: changeGameMode,
+    flipBoard,
+  }
+
+  return <GameContext.Provider value={value}>{children}</GameContext.Provider>
 }

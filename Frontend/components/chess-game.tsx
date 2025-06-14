@@ -7,6 +7,7 @@ import Navbar from "@/components/navbar"
 import Chessboard from "@/components/chessboard"
 import RightPanel from "@/components/right-panel"
 import Footer from "@/components/footer"
+import MaterialDisplay from "@/components/material-display"
 import { GameProvider } from "@/components/game-context"
 import GameStatusPopup from "@/components/game-status-popup"
 
@@ -17,10 +18,11 @@ export default function ChessGame() {
   return (
     <DndProvider backend={backend}>
       <GameProvider>
-        <div className="flex flex-col min-h-screen">
+        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
           <Navbar />
           <div className="flex flex-col md:flex-row flex-1 gap-4 p-4 max-w-7xl mx-auto w-full">
-            <div className="w-full md:w-3/5">
+            <div className="w-full md:w-3/5 space-y-4">
+              <MaterialDisplay />
               <Chessboard />
             </div>
             <div className="w-full md:w-2/5 mt-4 md:mt-0">

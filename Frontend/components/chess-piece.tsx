@@ -37,17 +37,38 @@ export default function ChessPiece({ type, color, position, legalMoves }: ChessP
   return (
     <motion.div
       ref={drag}
-      className={`w-full h-full flex items-center justify-center ${canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default"} ${isDragging ? "opacity-50" : "opacity-100"}`}
-      initial={{ scale: 0.8 }}
-      animate={{ scale: 1 }}
-      transition={{ type: "spring", stiffness: 300, damping: 15 }}
+      className={`w-full h-full flex items-center justify-center ${
+        canDrag ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+      } ${isDragging ? "opacity-50" : "opacity-100"}`}
+      initial={{ scale: 0.8, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{
+        type: "spring",
+        stiffness: 300,
+        damping: 15,
+        opacity: { duration: 0.2 },
+      }}
+      whileHover={
+        canDrag
+          ? {
+              scale: 1.1,
+              filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.3))",
+              transition: { duration: 0.2 },
+            }
+          : {}
+      }
+      whileTap={canDrag ? { scale: 0.95 } : {}}
       style={{ touchAction: "none" }}
+      layout
     >
-      <img
+      <motion.img
         src={getPieceImage() || "/placeholder.svg"}
         alt={`${color === "w" ? "White" : "Black"} ${type}`}
-        className="w-[80%] h-[80%] select-none"
+        className="w-[85%] h-[85%] select-none filter drop-shadow-sm"
         draggable={false}
+        initial={{ rotate: 0 }}
+        animate={{ rotate: isDragging ? 5 : 0 }}
+        transition={{ duration: 0.2 }}
       />
     </motion.div>
   )

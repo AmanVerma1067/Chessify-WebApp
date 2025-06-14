@@ -11,7 +11,7 @@ export default function Footer() {
             © {new Date().getFullYear()} Chessify AI. All rights reserved.
           </div>
 
-          <div className="text-base text-gray-300 font-medium">Made with love ❤️ by Aman Verma</div>
+          <div className="text-base text-gray-300 font-medium">Made with 🧠 by Aman Verma</div>
 
           <div className="flex items-center space-x-6">
             <a
@@ -24,7 +24,7 @@ export default function Footer() {
               <span className="sr-only">GitHub</span>
             </a>
             <a
-              href="https://linkedin.com/amanverma1067"
+              href="https://www.linkedin.com/in/amanverma1067/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-gray-300 hover:text-cyan-400 transition-colors duration-200"

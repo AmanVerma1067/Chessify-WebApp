@@ -8,7 +8,7 @@ import ChessPiece from "@/components/chess-piece"
 import { Card } from "@/components/ui/card"
 
 export default function Chessboard() {
-  const { fen, gameState, lastMove, legalMoves, selectedPiece } = useGame()
+  const { fen, gameState, lastMove, legalMoves, selectedPiece, boardFlipped, game } = useGame()
   const [board, setBoard] = useState<any[][]>([])
 
   useEffect(() => {
@@ -45,17 +45,19 @@ export default function Chessboard() {
   // Create the 8x8 board
   const renderBoard = () => {
     const squares = []
+    const currentTurn = game.turn()
 
     // Add file labels (a-h) at the top
     squares.push(<div key="top-spacer" className="col-start-1 row-start-1 w-6 h-6"></div>)
 
     for (let col = 0; col < 8; col++) {
+      const fileLabel = boardFlipped ? String.fromCharCode(104 - col) : String.fromCharCode(97 + col)
       squares.push(
         <div
           key={`top-${col}`}
-          className="flex items-center justify-center h-6 text-xs text-gray-600 dark:text-gray-400"
+          className="flex items-center justify-center h-6 text-sm font-semibold text-gray-700 dark:text-gray-300"
         >
-          {String.fromCharCode(97 + col)}
+          {fileLabel}
         </div>,
       )
     }
@@ -64,21 +66,26 @@ export default function Chessboard() {
 
     // Add rank labels (1-8) on the left and the board squares
     for (let row = 0; row < 8; row++) {
+      const displayRow = boardFlipped ? row : row
+      const rankLabel = boardFlipped ? row + 1 : 8 - row
+
       // Rank label on the left
       squares.push(
         <div
           key={`left-${row}`}
-          className="flex items-center justify-center w-6 text-xs text-gray-600 dark:text-gray-400"
+          className="flex items-center justify-center w-6 text-sm font-semibold text-gray-700 dark:text-gray-300"
         >
-          {8 - row}
+          {rankLabel}
         </div>,
       )
 
       // Board squares
       for (let col = 0; col < 8; col++) {
-        const isWhite = (row + col) % 2 === 0
-        const position = String.fromCharCode(97 + col) + (8 - row)
-        const piece = board[row] && board[row][col]
+        const displayCol = boardFlipped ? 7 - col : col
+        const isWhite = (displayRow + displayCol) % 2 === 0
+        const position = String.fromCharCode(97 + (boardFlipped ? 7 - col : col)) + (boardFlipped ? row + 1 : 8 - row)
+        const piece =
+          board[boardFlipped ? 7 - row : row] && board[boardFlipped ? 7 - row : row][boardFlipped ? 7 - col : col]
 
         // Check if this square is part of the last move
         const isLastMove = lastMove && (position === lastMove.from || position === lastMove.to)
@@ -122,9 +129,9 @@ export default function Chessboard() {
       squares.push(
         <div
           key={`right-${row}`}
-          className="flex items-center justify-center w-6 text-xs text-gray-600 dark:text-gray-400"
+          className="flex items-center justify-center w-6 text-sm font-semibold text-gray-700 dark:text-gray-300"
         >
-          {8 - row}
+          {rankLabel}
         </div>,
       )
     }
@@ -133,12 +140,13 @@ export default function Chessboard() {
     squares.push(<div key="bottom-spacer" className="col-start-1 row-start-10 w-6 h-6"></div>)
 
     for (let col = 0; col < 8; col++) {
+      const fileLabel = boardFlipped ? String.fromCharCode(104 - col) : String.fromCharCode(97 + col)
       squares.push(
         <div
           key={`bottom-${col}`}
-          className="flex items-center justify-center h-6 text-xs text-gray-600 dark:text-gray-400"
+          className="flex items-center justify-center h-6 text-sm font-semibold text-gray-700 dark:text-gray-300"
         >
-          {String.fromCharCode(97 + col)}
+          {fileLabel}
         </div>,
       )
     }
@@ -149,8 +157,13 @@ export default function Chessboard() {
   }
 
   return (
-    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-      <Card className="p-2 md:p-4 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm shadow-lg">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className={`${game.turn() === "w" ? "ring-2 ring-white/30" : "ring-2 ring-gray-800/30"} rounded-lg transition-all duration-300`}
+    >
+      <Card className="p-2 md:p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm shadow-xl border-2 border-gray-200 dark:border-gray-700">
         <div className="w-full grid grid-cols-[auto_repeat(8,minmax(0,1fr))_auto] grid-rows-[auto_repeat(8,minmax(0,1fr))_auto] gap-0">
           {renderBoard()}
         </div>
