@@ -1,2 +1,24 @@
-# Ignoring the chess envuironment folder
+# Ignoring the chess environment and frontend build artifacts
+
+
 Backend/chessenv/
+
+Frontend/node_modules/
+
+# production
+Frontend/.next/
+Frontend/out/
+
+# logs
+Frontend/npm-debug.log*
+Frontend/yarn-debug.log*
+Frontend/yarn-error.log*
+
+# local env files
+Frontend/.env.local
+Frontend/.env.development.local
+Frontend/.env.test.local
+Frontend/.env.production.local
+
+# misc
+Frontend/DS_Store
