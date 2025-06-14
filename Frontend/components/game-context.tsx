@@ -44,7 +44,7 @@ export function useGame() {
 }
 
 // 🔁 Bot move API integration (Edit this URL to your backend)
-const API_URL = "http://localhost:8000/get_bot_move"
+const API_URL = "https://chess-backend-tvdo.onrender.com/get_bot_move"
 
 async function getBotMove(fen: string): Promise<{ move: string; new_fen: string }> {
   try {

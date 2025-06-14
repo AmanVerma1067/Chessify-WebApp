@@ -2,5 +2,5 @@ services:
   - type: web
     name: chess-bot-backend
     env: python
-    buildCommand: ""
+    buildCommand: "chmod +x Backend/stockfish/stockfish-ubuntu-x86-64"
     startCommand: gunicorn main:app --bind 0.0.0.0:$PORT
