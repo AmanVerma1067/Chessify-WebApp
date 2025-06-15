@@ -84,7 +84,7 @@ const BOT_MESSAGES = [
 function getRandomBotMessage(): string {
   return BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
 }
-const DEPTH = 1;
+const DEPTH = 3;
 
 async function getBotMove(fen: string) {
   try {
