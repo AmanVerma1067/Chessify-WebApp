@@ -198,6 +198,9 @@ export default function GameControls() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <div className="mt-3 p-2 bg-gray-800/30 rounded text-xs text-gray-400 text-center">
+        Powered by Chessify AI | Depth: 3
+      </div>
     </motion.div>
   )
 }
