@@ -32,7 +32,7 @@ export default function Footer() {
               <Linkedin className="h-6 w-6" />
               <span className="sr-only">LinkedIn</span>
             </a>
-            <div className="text-sm text-gray-400 font-medium">Version 0.1.0</div>
+            <div className="text-sm text-gray-400 font-medium">Version 1.1.3</div>
           </div>
         </div>
       </div>
