@@ -88,7 +88,7 @@ const DEPTH = 3;
 
 async function getBotMove(fen: string) {
   try {
-    const res = await fetch("https://chess-api.com/v1", {
+    const res = await fetch("/api/chess", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fen, depth: DEPTH, maxThinkingTime: 100 }),
