@@ -14,7 +14,8 @@ A web-based chess-playing application built with **Next.js (React)** on the fron
 ## 🚀 Features
 
 - ✅ Play chess against an AI
-- ♟️ Uses Stockfish (local or remote) for move generation
+- ♟️ Uses Stockfish (local or remote) for move analysis
+- 🧠 Moves generation is powered by Minimax and alpha-beta-pruning with depth control and Opening moves played using a real chess opening book.
 - 🎨 Interactive UI with drag-and-drop and click-to-move
 - 💡 Highlights legal moves
 - ⚙️ Fully responsive and modern interface
