@@ -1,3 +1,4 @@
+// components/square.tsx (updated section)
 "use client"
 
 import type React from "react"

@@ -1,3 +1,4 @@
+// components/chess-game.tsx (updated)
 "use client"
 import { DndProvider } from "react-dnd"
 import { HTML5Backend } from "react-dnd-html5-backend"
@@ -8,31 +9,55 @@ import Chessboard from "@/components/chessboard"
 import RightPanel from "@/components/right-panel"
 import Footer from "@/components/footer"
 import MaterialDisplay from "@/components/material-display"
-import { GameProvider } from "@/components/game-context"
+import { GameProvider, useGame } from "@/components/game-context"
 import GameStatusPopup from "@/components/game-status-popup"
+import PromotionDialog from "@/components/promotion-dialog"
 
-export default function ChessGame() {
+function ChessGameContent() {
   const isMobile = useMediaQuery("(max-width: 768px)")
   const backend = isMobile ? TouchBackend : HTML5Backend
+  
+  const { 
+    showPromotionDialog, 
+    pendingPromotion, 
+    playerColor, 
+    handlePromotion, 
+    cancelPromotion 
+  } = useGame()
 
   return (
     <DndProvider backend={backend}>
-      <GameProvider>
-        <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
-          <Navbar />
-          <div className="flex flex-col md:flex-row flex-1 gap-4 p-4 max-w-7xl mx-auto w-full">
-            <div className="w-full md:w-3/5 space-y-4">
-              <MaterialDisplay />
-              <Chessboard />
-            </div>
-            <div className="w-full md:w-2/5 mt-4 md:mt-0">
-              <RightPanel />
-            </div>
+      <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+        <Navbar />
+        <div className="flex flex-col md:flex-row flex-1 gap-4 p-4 max-w-7xl mx-auto w-full">
+          <div className="w-full md:w-3/5 space-y-4">
+            <MaterialDisplay />
+            <Chessboard />
           </div>
-          <Footer />
-          <GameStatusPopup />
+          <div className="w-full md:w-2/5 mt-4 md:mt-0">
+            <RightPanel />
+          </div>
         </div>
-      </GameProvider>
+        <Footer />
+        <GameStatusPopup />
+        
+        {/* Promotion Dialog */}
+        <PromotionDialog
+          isOpen={showPromotionDialog}
+          color={playerColor}
+          onPromote={handlePromotion}
+          onCancel={cancelPromotion}
+          position={pendingPromotion?.position || { x: 0, y: 0 }}
+        />
+      </div>
     </DndProvider>
+  )
+}
+
+export default function ChessGame() {
+  return (
+    <GameProvider>
+      <ChessGameContent />
+    </GameProvider>
   )
 }

@@ -21,6 +21,12 @@ type GameState =
 type PlayerColor = "w" | "b";
 type TimeoutColor = "w" | "b" | null;
 
+interface PendingPromotion {
+  from: Square;
+  to: Square;
+  position: { x: number; y: number };
+}
+
 interface GameContextType {
   game: Chess;
   fen: string;
@@ -39,6 +45,10 @@ interface GameContextType {
   isRunning: boolean;
   timeoutColor: TimeoutColor;
   boardFlipped: boolean;
+  pendingPromotion: PendingPromotion | null;
+  showPromotionDialog: boolean;
+  handlePromotion: (piece: "q" | "r" | "b" | "n") => void;
+  cancelPromotion: () => void;
   makeMove: (from: Square, to: Square, promotion?: string) => boolean;
   selectPiece: (square: Square | null) => void;
   undoMove: () => void;
@@ -88,7 +98,7 @@ const DEPTH = 3;
 
 async function getBotMove(fen: string) {
   try {
-    const res = await fetch("/api/chess", {
+const res = await fetch("/api/chess", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fen, depth: DEPTH, maxThinkingTime: 100 }),
@@ -102,9 +112,26 @@ async function getBotMove(fen: string) {
     return await res.json();
   } catch (e) {
     console.error("API call failed:", e);
-    // Fallback logic...
+    // Fallback logic with promotion handling
     const game = new Chess(fen);
     const moves = game.moves({ verbose: true });
+    
+    // Prefer queen promotion for bot
+    const promotionMoves = moves.filter(move => move.promotion);
+    if (promotionMoves.length > 0) {
+      const queenPromotions = promotionMoves.filter(move => move.promotion === 'q');
+      if (queenPromotions.length > 0) {
+        const move = queenPromotions[Math.floor(Math.random() * queenPromotions.length)];
+        game.move(move);
+        return {
+          move: `${move.from}${move.to}${move.promotion}`,
+          new_fen: game.fen(),
+          eval: 0,
+          san: move.san,
+        };
+      }
+    }
+    
     const randomMove = moves[Math.floor(Math.random() * moves.length)];
     game.move(randomMove);
 
@@ -117,26 +144,43 @@ async function getBotMove(fen: string) {
   }
 }
 
+// Helper function to get initial time based on game mode
+function getInitialTime(mode: GameMode): number {
+  switch (mode) {
+    case "blitz":
+      return 300; // 5 minutes
+    case "rapid":
+      return 600; // 10 minutes
+    case "unlimited":
+      return Infinity;
+    default:
+      return 600; // Default to rapid
+  }
+}
+
 // ========== GAME PROVIDER ==========
 export function GameProvider({ children }: { children: ReactNode }) {
+  const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
+  const [showPromotionDialog, setShowPromotionDialog] = useState(false);
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(game.fen());
   const [history, setHistory] = useState<Move[]>([]);
   const [currentMove, setCurrentMove] = useState(0);
   const [gameState, setGameState] = useState<GameState>("playing");
   const [playerColor] = useState<PlayerColor>("w");
-  const [gameMode, setGameMode] = useState<GameMode>("rapid");
+  const [gameMode, setGameModeState] = useState<GameMode>("rapid");
   const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(
     null
   );
+
   const [legalMoves, setLegalMoves] = useState<Record<string, Square[]>>({});
   const [selectedPiece, setSelectedPiece] = useState<Square | null>(null);
   const [botThinking, setBotThinking] = useState(false);
   const [botMessage, setBotMessage] = useState<string | null>(
     "Hello! I'm Chessify AI v2 by Aman Verma. Ready for an enhanced chess experience?"
   );
-  const [timeWhite, setTimeWhite] = useState(gameMode === "blitz" ? 300 : 600);
-  const [timeBlack, setTimeBlack] = useState(gameMode === "blitz" ? 300 : 600);
+  const [timeWhite, setTimeWhite] = useState(() => getInitialTime("rapid"));
+  const [timeBlack, setTimeBlack] = useState(() => getInitialTime("rapid"));
   const [isRunning, setIsRunning] = useState(true);
   const [timeoutColor, setTimeoutColor] = useState<TimeoutColor>(null);
   const [boardFlipped, setBoardFlipped] = useState(false);
@@ -242,9 +286,33 @@ export function GameProvider({ children }: { children: ReactNode }) {
     };
   }, [isRunning, gameState, game, gameMode]);
 
+  // Check if move is a pawn promotion
+  const isPawnPromotion = (from: Square, to: Square): boolean => {
+    const piece = game.get(from);
+    if (!piece || piece.type !== 'p') return false;
+    
+    const toRank = parseInt(to[1]);
+    return (piece.color === 'w' && toRank === 8) || (piece.color === 'b' && toRank === 1);
+  };
+
   // Update makeMove function
   const makeMove = (from: Square, to: Square, promotion?: string): boolean => {
     try {
+      // Check if this is a pawn promotion move
+      if (!promotion && isPawnPromotion(from, to)) {
+        // Get screen position for dialog
+        const boardElement = document.querySelector('[data-position]');
+        const rect = boardElement?.getBoundingClientRect();
+        const position = {
+          x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+          y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2
+        };
+
+        setPendingPromotion({ from, to, position });
+        setShowPromotionDialog(true);
+        return false; // Don't make the move yet
+      }
+
       const newGame = new Chess(game.fen());
       const move = newGame.move({
         from,
@@ -255,17 +323,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
       if (move) {
         setGame(newGame);
         setFen(newGame.fen());
-        // Add move to history instead of replacing
         setHistory((prev) => [...prev, move]);
         setCurrentMove((prev) => prev + 1);
         setLastMove({ from, to });
         setSelectedPiece(null);
+        
+        // Clear promotion state if it was a promotion move
+        if (pendingPromotion) {
+          setPendingPromotion(null);
+          setShowPromotionDialog(false);
+        }
+        
         return true;
       }
     } catch (e) {
       console.error("Invalid move", e);
     }
     return false;
+  };
+
+  const handlePromotion = (piece: "q" | "r" | "b" | "n") => {
+    if (pendingPromotion) {
+      makeMove(pendingPromotion.from, pendingPromotion.to, piece);
+    }
+  };
+
+  const cancelPromotion = () => {
+    setPendingPromotion(null);
+    setShowPromotionDialog(false);
+    setSelectedPiece(null);
   };
 
   const selectPiece = (square: Square | null) => setSelectedPiece(square);
@@ -294,16 +380,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setBotMessage("New game started. Good luck!");
     setLastBotMoveNumber(0);
 
-    if (gameMode === "blitz") {
-      setTimeWhite(300);
-      setTimeBlack(300);
-    } else if (gameMode === "rapid") {
-      setTimeWhite(600);
-      setTimeBlack(600);
-    } else {
-      setTimeWhite(Infinity);
-      setTimeBlack(Infinity);
-    }
+    // Set timers based on current game mode
+    const newTime = getInitialTime(gameMode);
+    setTimeWhite(newTime);
+    setTimeBlack(newTime);
 
     setIsRunning(true);
   };
@@ -316,12 +396,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const flipBoard = () => setBoardFlipped(!boardFlipped);
 
+  // Fixed game mode change function
   const changeGameMode = (mode: GameMode) => {
-    setGameMode(mode);
-    resetGame();
+    console.log(`Changing game mode from ${gameMode} to ${mode}`); // Debug log
+    setGameModeState(mode);
+    
+    // Update timers immediately based on new mode
+    const newTime = getInitialTime(mode);
+    setTimeWhite(newTime);
+    setTimeBlack(newTime);
+    
+    // Reset the game with new mode
+    const freshGame = new Chess();
+    setGame(freshGame);
+    setFen(freshGame.fen());
+    setHistory([]);
+    setCurrentMove(0);
+    setGameState("playing");
+    setLastMove(null);
+    setSelectedPiece(null);
+    setBotMessage(`New ${mode} game started. Good luck!`);
+    setLastBotMoveNumber(0);
+    setIsRunning(true);
   };
 
   const value: GameContextType = {
+    pendingPromotion,
+    showPromotionDialog,
+    handlePromotion,
+    cancelPromotion,
     game,
     fen,
     history,
