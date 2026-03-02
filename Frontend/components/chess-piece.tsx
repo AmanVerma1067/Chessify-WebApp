@@ -13,10 +13,12 @@ interface ChessPieceProps {
 }
 
 export default function ChessPiece({ type, color, position, legalMoves }: ChessPieceProps) {
-  const { playerColor, gameState, selectPiece } = useGame()
+  const { assignedColor, gameType, gameState, selectPiece } = useGame()
 
-  // Only allow dragging if it's the player's turn and the game is still active
-  const canDrag = color === playerColor && gameState === "playing"
+  const canDrag =
+    gameType === "ai"
+      ? color === "w" && gameState === "playing"
+      : color === assignedColor && gameState === "playing" && assignedColor !== "spectator"
 
   const [{ isDragging }, drag] = useDrag({
     type: "piece",
@@ -27,12 +29,7 @@ export default function ChessPiece({ type, color, position, legalMoves }: ChessP
     }),
   })
 
-  // Get piece image URL
-  const getPieceImage = () => {
-    // Using the naming convention: [color][type].png
-    // Example: wp.png for white pawn, bk.png for black king
-    return `/pieces/${color}${type}.png`
-  }
+  const getPieceImage = () => `/pieces/${color}${type}.png`
 
   return (
     <motion.div

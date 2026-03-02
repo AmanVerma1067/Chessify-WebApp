@@ -31,12 +31,12 @@ export default function GameControls() {
     timeBlack,
     gameMode,
     history,
+    gameType,
   } = useGame()
 
   const [resignDialogOpen, setResignDialogOpen] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
 
-  // Get game status message
   const getGameStatusMessage = () => {
     if (gameState === "timeout") {
       return `${timeoutColor === "w" ? "White" : "Black"} ran out of time`
@@ -61,48 +61,52 @@ export default function GameControls() {
     >
       <h3 className="text-xl font-semibold mb-4 text-gray-100">Game Controls</h3>
 
-      <div className="flex justify-between mb-8 p-4 bg-gray-700/50 rounded-lg">
-        <div className="text-center">
-          <div className="text-base text-gray-400 font-medium mb-1">White</div>
-          <motion.div
-            className={`text-3xl font-mono font-bold ${timeWhite < 30 && gameMode !== "unlimited" ? "text-red-400" : "text-gray-100"}`}
-            animate={timeWhite < 30 && gameMode !== "unlimited" ? { scale: [1, 1.05, 1] } : {}}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
-          >
-            {formatTime(timeWhite)}
-          </motion.div>
+      {gameType === "ai" && (
+        <div className="flex justify-between mb-8 p-4 bg-gray-700/50 rounded-lg">
+          <div className="text-center">
+            <div className="text-base text-gray-400 font-medium mb-1">White</div>
+            <motion.div
+              className={`text-3xl font-mono font-bold ${timeWhite < 30 && gameMode !== "unlimited" ? "text-red-400" : "text-gray-100"}`}
+              animate={timeWhite < 30 && gameMode !== "unlimited" ? { scale: [1, 1.05, 1] } : {}}
+              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
+            >
+              {formatTime(timeWhite)}
+            </motion.div>
+          </div>
+          <div className="text-center">
+            <div className="text-base text-gray-400 font-medium mb-1">Black</div>
+            <motion.div
+              className={`text-3xl font-mono font-bold ${timeBlack < 30 && gameMode !== "unlimited" ? "text-red-400" : "text-gray-100"}`}
+              animate={timeBlack < 30 && gameMode !== "unlimited" ? { scale: [1, 1.05, 1] } : {}}
+              transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
+            >
+              {formatTime(timeBlack)}
+            </motion.div>
+          </div>
         </div>
-
-        <div className="text-center">
-          <div className="text-base text-gray-400 font-medium mb-1">Black</div>
-          <motion.div
-            className={`text-3xl font-mono font-bold ${timeBlack < 30 && gameMode !== "unlimited" ? "text-red-400" : "text-gray-100"}`}
-            animate={timeBlack < 30 && gameMode !== "unlimited" ? { scale: [1, 1.05, 1] } : {}}
-            transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY }}
-          >
-            {formatTime(timeBlack)}
-          </motion.div>
-        </div>
-      </div>
+      )}
 
       <div className="flex flex-col space-y-4">
         <Button
           variant="outline"
           onClick={() => undoMove()}
-          disabled={gameState !== "playing" || history.length === 0}
+          disabled={gameState !== "playing" || history.length === 0 || gameType === "pvp"}
           className="flex items-center text-base font-medium h-12 hover:bg-blue-600/20 transition-all duration-200"
         >
           <Undo2 className="mr-3 h-5 w-5" />
           Undo Last Move
+          {gameType === "pvp" && <span className="ml-2 text-xs text-gray-500">(PvP)</span>}
         </Button>
 
         <Button
           variant="outline"
           onClick={() => flipBoard()}
+          disabled={gameType === "pvp"}
           className="flex items-center text-base font-medium h-12 hover:bg-green-600/20 transition-all duration-200"
         >
           <RotateCcw className="mr-3 h-5 w-5" />
           Flip Board
+          {gameType === "pvp" && <span className="ml-2 text-xs text-gray-500">(PvP)</span>}
         </Button>
 
         <Button
@@ -134,7 +138,8 @@ export default function GameControls() {
         <h4 className="font-semibold mb-3 text-lg text-gray-100">Game Status</h4>
         <div className="text-base space-y-2">
           <p className="text-gray-200">
-            <span className="font-medium">Status:</span> <span className="ml-2">{getGameStatusMessage()}</span>
+            <span className="font-medium">Status:</span>{" "}
+            <span className="ml-2">{getGameStatusMessage()}</span>
           </p>
           <p className="text-gray-200">
             <span className="font-medium">Playing as:</span>{" "}
@@ -144,14 +149,21 @@ export default function GameControls() {
             <span className="font-medium">Turn:</span>{" "}
             <span className="ml-2">{game.turn() === "w" ? "White" : "Black"}</span>
           </p>
+          {gameType === "pvp" && (
+            <p className="text-gray-200">
+              <span className="font-medium">Mode:</span>{" "}
+              <span className="ml-2 text-violet-400">⚔️ PvP</span>
+            </p>
+          )}
         </div>
       </motion.div>
 
-      {/* Resign Confirmation Dialog */}
       <AlertDialog open={resignDialogOpen} onOpenChange={setResignDialogOpen}>
         <AlertDialogContent className="bg-gray-800 border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-lg text-gray-100">Are you sure you want to resign?</AlertDialogTitle>
+            <AlertDialogTitle className="text-lg text-gray-100">
+              Are you sure you want to resign?
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-base text-gray-300">
               This action cannot be undone. The game will end and be recorded as a loss.
             </AlertDialogDescription>
@@ -161,10 +173,7 @@ export default function GameControls() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                resignGame()
-                setResignDialogOpen(false)
-              }}
+              onClick={() => { resignGame(); setResignDialogOpen(false) }}
               className="text-base bg-red-600 hover:bg-red-700"
             >
               Resign
@@ -173,7 +182,6 @@ export default function GameControls() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Reset Game Confirmation Dialog */}
       <AlertDialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
         <AlertDialogContent className="bg-gray-800 border-gray-700">
           <AlertDialogHeader>
@@ -187,10 +195,7 @@ export default function GameControls() {
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => {
-                resetGame()
-                setResetDialogOpen(false)
-              }}
+              onClick={() => { resetGame(); setResetDialogOpen(false) }}
               className="text-base bg-blue-600 hover:bg-blue-700"
             >
               New Game
@@ -198,6 +203,7 @@ export default function GameControls() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
       <div className="mt-3 p-2 bg-gray-800/30 rounded text-xs text-gray-400 text-center">
         Powered by Chessify AI | Depth: 3
       </div>

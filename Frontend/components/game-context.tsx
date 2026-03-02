@@ -9,6 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { Chess, SQUARES, type Move, type Square } from "chess.js";
+import { pvpSocket } from "@/lib/pvpSocket";
 
 type GameMode = "blitz" | "rapid" | "unlimited";
 type GameState =
@@ -20,11 +21,18 @@ type GameState =
   | "timeout";
 type PlayerColor = "w" | "b";
 type TimeoutColor = "w" | "b" | null;
+type AssignedColor = "w" | "b" | "spectator";
 
 interface PendingPromotion {
   from: Square;
   to: Square;
   position: { x: number; y: number };
+}
+
+interface ChatMessage {
+  text: string;
+  color: string;
+  timestamp: number;
 }
 
 interface GameContextType {
@@ -47,6 +55,13 @@ interface GameContextType {
   boardFlipped: boolean;
   pendingPromotion: PendingPromotion | null;
   showPromotionDialog: boolean;
+  // PvP
+  gameType: "ai" | "pvp";
+  assignedColor: AssignedColor;
+  spectatorCount: number;
+  opponentConnected: boolean;
+  pvpChatMessages: ChatMessage[];
+  sendChat: (message: string) => void;
   handlePromotion: (piece: "q" | "r" | "b" | "n") => void;
   cancelPromotion: () => void;
   makeMove: (from: Square, to: Square, promotion?: string) => boolean;
@@ -67,8 +82,6 @@ export function useGame() {
   }
   return context;
 }
-
-// ========== BOT SETTINGS ==========
 
 const BOT_MESSAGES = [
   "Hmm, interesting move.",
@@ -94,11 +107,12 @@ const BOT_MESSAGES = [
 function getRandomBotMessage(): string {
   return BOT_MESSAGES[Math.floor(Math.random() * BOT_MESSAGES.length)];
 }
+
 const DEPTH = 3;
 
 async function getBotMove(fen: string) {
   try {
-const res = await fetch("/api/chess", {
+    const res = await fetch("/api/chess", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ fen, depth: DEPTH, maxThinkingTime: 100 }),
@@ -112,16 +126,17 @@ const res = await fetch("/api/chess", {
     return await res.json();
   } catch (e) {
     console.error("API call failed:", e);
-    // Fallback logic with promotion handling
     const game = new Chess(fen);
     const moves = game.moves({ verbose: true });
-    
-    // Prefer queen promotion for bot
-    const promotionMoves = moves.filter(move => move.promotion);
+
+    const promotionMoves = moves.filter((move) => move.promotion);
     if (promotionMoves.length > 0) {
-      const queenPromotions = promotionMoves.filter(move => move.promotion === 'q');
+      const queenPromotions = promotionMoves.filter(
+        (move) => move.promotion === "q"
+      );
       if (queenPromotions.length > 0) {
-        const move = queenPromotions[Math.floor(Math.random() * queenPromotions.length)];
+        const move =
+          queenPromotions[Math.floor(Math.random() * queenPromotions.length)];
         game.move(move);
         return {
           move: `${move.from}${move.to}${move.promotion}`,
@@ -131,7 +146,7 @@ const res = await fetch("/api/chess", {
         };
       }
     }
-    
+
     const randomMove = moves[Math.floor(Math.random() * moves.length)];
     game.move(randomMove);
 
@@ -144,23 +159,28 @@ const res = await fetch("/api/chess", {
   }
 }
 
-// Helper function to get initial time based on game mode
 function getInitialTime(mode: GameMode): number {
   switch (mode) {
     case "blitz":
-      return 300; // 5 minutes
+      return 300;
     case "rapid":
-      return 600; // 10 minutes
+      return 600;
     case "unlimited":
       return Infinity;
     default:
-      return 600; // Default to rapid
+      return 600;
   }
 }
 
-// ========== GAME PROVIDER ==========
-export function GameProvider({ children }: { children: ReactNode }) {
-  const [pendingPromotion, setPendingPromotion] = useState<PendingPromotion | null>(null);
+interface GameProviderProps {
+  children: ReactNode;
+  mode?: "ai" | "pvp";
+  gameId?: string;
+}
+
+export function GameProvider({ children, mode = "ai", gameId }: GameProviderProps) {
+  const [pendingPromotion, setPendingPromotion] =
+    useState<PendingPromotion | null>(null);
   const [showPromotionDialog, setShowPromotionDialog] = useState(false);
   const [game, setGame] = useState(new Chess());
   const [fen, setFen] = useState(game.fen());
@@ -169,10 +189,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [gameState, setGameState] = useState<GameState>("playing");
   const [playerColor] = useState<PlayerColor>("w");
   const [gameMode, setGameModeState] = useState<GameMode>("rapid");
-  const [lastMove, setLastMove] = useState<{ from: Square; to: Square } | null>(
-    null
-  );
-
+  const [lastMove, setLastMove] = useState<{
+    from: Square;
+    to: Square;
+  } | null>(null);
   const [legalMoves, setLegalMoves] = useState<Record<string, Square[]>>({});
   const [selectedPiece, setSelectedPiece] = useState<Square | null>(null);
   const [botThinking, setBotThinking] = useState(false);
@@ -184,8 +204,83 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const [isRunning, setIsRunning] = useState(true);
   const [timeoutColor, setTimeoutColor] = useState<TimeoutColor>(null);
   const [boardFlipped, setBoardFlipped] = useState(false);
-
   const [lastBotMoveNumber, setLastBotMoveNumber] = useState(0);
+
+  // PvP state
+  const [gameType] = useState<"ai" | "pvp">(mode);
+  const [assignedColor, setAssignedColor] = useState<AssignedColor>("w");
+  const [spectatorCount, setSpectatorCount] = useState(0);
+  const [opponentConnected, setOpponentConnected] = useState(false);
+  const [pvpChatMessages, setPvpChatMessages] = useState<ChatMessage[]>([]);
+
+  // PvP socket setup
+  useEffect(() => {
+    if (gameType !== "pvp" || !gameId) return;
+
+    pvpSocket.connect();
+    pvpSocket.emit("join-room", gameId);
+
+    pvpSocket.on("role", (role: string) => {
+      if (role === "white") setAssignedColor("w");
+      else if (role === "black") setAssignedColor("b");
+      else setAssignedColor("spectator");
+    });
+
+    pvpSocket.on("sync-board", (fenStr: string) => {
+      const newGame = new Chess(fenStr);
+      setGame(newGame);
+      setFen(fenStr);
+    });
+
+    pvpSocket.on("opponent-joined", () => setOpponentConnected(true));
+
+    pvpSocket.on(
+      "opponent-move",
+      ({ from, to, promotion }: { from: string; to: string; promotion?: string }) => {
+        setGame((prev) => {
+          const newGame = new Chess(prev.fen());
+          const move = newGame.move({ from: from as Square, to: to as Square, promotion });
+          if (move) {
+            setFen(newGame.fen());
+            setHistory((h) => [...h, move]);
+            setCurrentMove((c) => c + 1);
+            setLastMove({ from: from as Square, to: to as Square });
+          }
+          return newGame;
+        });
+      }
+    );
+
+    pvpSocket.on("move-confirmed", ({ fen: confirmedFen }: { fen: string }) => {
+      const newGame = new Chess(confirmedFen);
+      setGame(newGame);
+      setFen(confirmedFen);
+    });
+
+    pvpSocket.on("chat-received", (msg: ChatMessage) => {
+      setPvpChatMessages((prev) => [...prev, msg]);
+    });
+
+    pvpSocket.on("spectator-count", (count: number) =>
+      setSpectatorCount(count)
+    );
+
+    pvpSocket.on("opponent-disconnected", () => {
+      setOpponentConnected(false);
+    });
+
+    return () => {
+      pvpSocket.off("role");
+      pvpSocket.off("sync-board");
+      pvpSocket.off("opponent-joined");
+      pvpSocket.off("opponent-move");
+      pvpSocket.off("move-confirmed");
+      pvpSocket.off("chat-received");
+      pvpSocket.off("spectator-count");
+      pvpSocket.off("opponent-disconnected");
+      pvpSocket.disconnect();
+    };
+  }, [gameType, gameId]);
 
   // Legal moves tracking
   useEffect(() => {
@@ -214,16 +309,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, [fen, game]);
 
-  // Bot move trigger
-  // Add useRef for fresh state access
   const fenRef = useRef(fen);
   useEffect(() => {
     fenRef.current = fen;
   }, [fen]);
 
-  // Fixed bot move useEffect
-  // Update bot move effect
+  // Bot move trigger — only in AI mode
   useEffect(() => {
+    if (gameType !== "ai") return;
     if (game.turn() === "b" && gameState === "playing" && !botThinking) {
       setBotThinking(true);
       const thinkTime = Math.floor(Math.random() * 2000) + 1000;
@@ -241,7 +334,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
           setGame(newGame);
           setFen(newGame.fen());
-          // Add bot move to history
           setHistory((prev) => [...prev, move]);
           setCurrentMove((prev) => prev + 1);
           setLastMove({ from, to });
@@ -253,10 +345,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
       }, thinkTime);
     }
-  }, [fen, gameState, botThinking, game]);
+  }, [fen, gameState, botThinking, game, gameType]);
 
-  // Timer
+  // Timer — only in AI mode
   useEffect(() => {
+    if (gameType !== "ai") return;
     let timer: NodeJS.Timeout | null = null;
     if (isRunning && gameState === "playing" && gameMode !== "unlimited") {
       timer = setInterval(() => {
@@ -284,41 +377,41 @@ export function GameProvider({ children }: { children: ReactNode }) {
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [isRunning, gameState, game, gameMode]);
+  }, [isRunning, gameState, game, gameMode, gameType]);
 
-  // Check if move is a pawn promotion
   const isPawnPromotion = (from: Square, to: Square): boolean => {
     const piece = game.get(from);
-    if (!piece || piece.type !== 'p') return false;
-    
+    if (!piece || piece.type !== "p") return false;
     const toRank = parseInt(to[1]);
-    return (piece.color === 'w' && toRank === 8) || (piece.color === 'b' && toRank === 1);
+    return (
+      (piece.color === "w" && toRank === 8) ||
+      (piece.color === "b" && toRank === 1)
+    );
   };
 
-  // Update makeMove function
   const makeMove = (from: Square, to: Square, promotion?: string): boolean => {
     try {
-      // Check if this is a pawn promotion move
+      if (gameType === "pvp") {
+        // In PvP, emit to server and wait for confirmation
+        pvpSocket.emit("move", { roomId: gameId, from, to, promotion });
+        return true;
+      }
+
+      // AI mode
       if (!promotion && isPawnPromotion(from, to)) {
-        // Get screen position for dialog
-        const boardElement = document.querySelector('[data-position]');
+        const boardElement = document.querySelector("[data-position]");
         const rect = boardElement?.getBoundingClientRect();
         const position = {
           x: rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
-          y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2
+          y: rect ? rect.top + rect.height / 2 : window.innerHeight / 2,
         };
-
         setPendingPromotion({ from, to, position });
         setShowPromotionDialog(true);
-        return false; // Don't make the move yet
+        return false;
       }
 
       const newGame = new Chess(game.fen());
-      const move = newGame.move({
-        from,
-        to,
-        promotion: promotion || undefined,
-      });
+      const move = newGame.move({ from, to, promotion: promotion || undefined });
 
       if (move) {
         setGame(newGame);
@@ -327,13 +420,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setCurrentMove((prev) => prev + 1);
         setLastMove({ from, to });
         setSelectedPiece(null);
-        
-        // Clear promotion state if it was a promotion move
+
         if (pendingPromotion) {
           setPendingPromotion(null);
           setShowPromotionDialog(false);
         }
-        
         return true;
       }
     } catch (e) {
@@ -357,6 +448,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const selectPiece = (square: Square | null) => setSelectedPiece(square);
 
   const undoMove = () => {
+    if (gameType === "pvp") return;
     if (game.history().length > 0) {
       game.undo();
       game.undo();
@@ -372,19 +464,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     const freshGame = new Chess();
     setGame(freshGame);
     setFen(freshGame.fen());
-    setHistory([]); // Reset history to empty array
+    setHistory([]);
     setCurrentMove(0);
     setGameState("playing");
     setLastMove(null);
     setSelectedPiece(null);
     setBotMessage("New game started. Good luck!");
     setLastBotMoveNumber(0);
-
-    // Set timers based on current game mode
     const newTime = getInitialTime(gameMode);
     setTimeWhite(newTime);
     setTimeBlack(newTime);
-
     setIsRunning(true);
   };
 
@@ -394,19 +483,16 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setBotMessage("You resigned. Want to try again?");
   };
 
-  const flipBoard = () => setBoardFlipped(!boardFlipped);
+  const flipBoard = () => {
+    if (gameType === "pvp") return;
+    setBoardFlipped(!boardFlipped);
+  };
 
-  // Fixed game mode change function
   const changeGameMode = (mode: GameMode) => {
-    console.log(`Changing game mode from ${gameMode} to ${mode}`); // Debug log
     setGameModeState(mode);
-    
-    // Update timers immediately based on new mode
     const newTime = getInitialTime(mode);
     setTimeWhite(newTime);
     setTimeBlack(newTime);
-    
-    // Reset the game with new mode
     const freshGame = new Chess();
     setGame(freshGame);
     setFen(freshGame.fen());
@@ -420,6 +506,15 @@ export function GameProvider({ children }: { children: ReactNode }) {
     setIsRunning(true);
   };
 
+  const sendChat = (message: string) => {
+    if (gameType === "pvp") {
+      pvpSocket.emit("chat", {
+        roomId: gameId,
+        msg: { text: message, color: assignedColor, timestamp: Date.now() },
+      });
+    }
+  };
+
   const value: GameContextType = {
     pendingPromotion,
     showPromotionDialog,
@@ -430,7 +525,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     history,
     currentMove,
     gameState,
-    playerColor,
+    playerColor: gameType === "pvp" ? (assignedColor === "spectator" ? "w" : assignedColor) : playerColor,
     gameMode,
     lastMove,
     legalMoves,
@@ -442,6 +537,12 @@ export function GameProvider({ children }: { children: ReactNode }) {
     isRunning,
     timeoutColor,
     boardFlipped,
+    gameType,
+    assignedColor,
+    spectatorCount,
+    opponentConnected,
+    pvpChatMessages,
+    sendChat,
     makeMove,
     selectPiece,
     undoMove,

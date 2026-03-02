@@ -1,4 +1,3 @@
-// components/chess-game.tsx (updated)
 "use client"
 import { DndProvider } from "react-dnd"
 import { HTML5Backend } from "react-dnd-html5-backend"
@@ -13,16 +12,21 @@ import { GameProvider, useGame } from "@/components/game-context"
 import GameStatusPopup from "@/components/game-status-popup"
 import PromotionDialog from "@/components/promotion-dialog"
 
+interface ChessGameProps {
+  mode?: "ai" | "pvp"
+  gameId?: string
+}
+
 function ChessGameContent() {
   const isMobile = useMediaQuery("(max-width: 768px)")
   const backend = isMobile ? TouchBackend : HTML5Backend
-  
-  const { 
-    showPromotionDialog, 
-    pendingPromotion, 
-    playerColor, 
-    handlePromotion, 
-    cancelPromotion 
+
+  const {
+    showPromotionDialog,
+    pendingPromotion,
+    playerColor,
+    handlePromotion,
+    cancelPromotion,
   } = useGame()
 
   return (
@@ -40,8 +44,6 @@ function ChessGameContent() {
         </div>
         <Footer />
         <GameStatusPopup />
-        
-        {/* Promotion Dialog */}
         <PromotionDialog
           isOpen={showPromotionDialog}
           color={playerColor}
@@ -54,9 +56,9 @@ function ChessGameContent() {
   )
 }
 
-export default function ChessGame() {
+export default function ChessGame({ mode = "ai", gameId }: ChessGameProps) {
   return (
-    <GameProvider>
+    <GameProvider mode={mode} gameId={gameId}>
       <ChessGameContent />
     </GameProvider>
   )
