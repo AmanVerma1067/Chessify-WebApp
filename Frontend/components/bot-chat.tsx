@@ -124,22 +124,22 @@ export default function BotChat() {
     >
       <div className="flex items-center mb-3">
         {gameType === "pvp" ? (
-          <Users className="h-6 w-6 text-violet-400 mr-2" />
+          <Users className="h-6 w-6 text-slate-300 mr-2" />
         ) : (
-          <Bot className="h-6 w-6 text-cyan-400 mr-2" />
+          <Bot className="h-6 w-6 text-slate-300 mr-2" />
         )}
-        <h3 className="text-xl font-semibold text-gray-100">
+        <h3 className="text-xl font-semibold text-slate-100">
           {gameType === "pvp" ? "Player Chat" : "AI Analysis"}
         </h3>
       </div>
 
       <ScrollArea
         ref={scrollAreaRef}
-        className="flex-grow border rounded-md p-4 bg-gray-900/50 border-gray-700"
+        className="flex-grow border rounded-md p-4 bg-slate-900/50 border-slate-800"
       >
         <div className="space-y-4">
           {messages.length === 0 && gameType === "pvp" && (
-            <p className="text-gray-400 text-center text-sm py-4">
+            <p className="text-slate-500 text-center text-sm py-4">
               Chat with your opponent here!
             </p>
           )}
@@ -150,30 +150,30 @@ export default function BotChat() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
               className={`p-3 rounded-lg max-w-[90%] ${message.sender === "bot"
-                  ? "ml-auto bg-gradient-to-br from-cyan-900 to-blue-800 border border-cyan-700"
-                  : message.sender === "pvp"
-                    ? message.color === assignedColor
-                      ? "ml-auto bg-gradient-to-br from-violet-900 to-violet-800 border border-violet-700"
-                      : "bg-gradient-to-r from-gray-700 to-gray-600 border border-gray-600"
-                    : "bg-gradient-to-r from-gray-700 to-gray-600 border border-gray-600"
+                ? "ml-auto bg-slate-800 border border-slate-700"
+                : message.sender === "pvp"
+                  ? message.color === assignedColor
+                    ? "ml-auto bg-slate-700 border border-slate-600"
+                    : "bg-slate-800 border border-slate-700"
+                  : "bg-slate-800/80 border border-slate-700"
                 }`}
             >
               <div className="flex items-start space-x-2">
                 {message.sender === "pvp" ? (
-                  <Users className="h-4 w-4 text-violet-400 mt-0.5 flex-shrink-0" />
+                  <Users className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 ) : message.sender === "bot" ? (
-                  <Bot className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
+                  <Bot className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                 ) : (
-                  <AlertCircle className="h-4 w-4 text-yellow-400 mt-0.5 flex-shrink-0" />
+                  <AlertCircle className="h-4 w-4 text-slate-500 mt-0.5 flex-shrink-0" />
                 )}
                 <div className="flex-1">
                   {message.sender === "pvp" && (
-                    <p className="text-xs text-gray-400 mb-0.5 font-medium">
+                    <p className="text-xs text-slate-400 mb-0.5 font-medium">
                       {getSenderLabel(message.color)}
                     </p>
                   )}
-                  <p className="text-base leading-relaxed text-gray-100">{message.text}</p>
-                  <p className="text-xs text-gray-400 mt-1">{formatTimestamp(message.timestamp)}</p>
+                  <p className="text-base leading-relaxed text-slate-100">{message.text}</p>
+                  <p className="text-xs text-slate-500 mt-1">{formatTimestamp(message.timestamp)}</p>
                 </div>
               </div>
             </motion.div>
@@ -183,10 +183,10 @@ export default function BotChat() {
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              className="flex items-center space-x-3 p-3 bg-gray-800/50 rounded-lg border border-gray-700"
+              className="flex items-center space-x-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700"
             >
-              <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
-              <span className="text-base text-gray-300">AI is thinking...</span>
+              <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+              <span className="text-base text-slate-300">AI is thinking...</span>
             </motion.div>
           )}
         </div>
@@ -200,18 +200,18 @@ export default function BotChat() {
             value={pvpInput}
             onChange={(e) => setPvpInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
-            className="flex-1 px-3 py-2 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-violet-500"
+            className="flex-1 px-3 py-2 rounded-md bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-slate-500"
           />
           <button
             onClick={handleSendChat}
             disabled={!pvpInput.trim()}
-            className="px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-md transition-colors"
+            className="px-3 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-40 text-slate-100 rounded-md transition-colors border border-slate-600"
           >
             <Send className="h-4 w-4" />
           </button>
         </div>
       ) : (
-        <div className="mt-3 p-2 bg-gray-800/30 rounded text-xs text-gray-400 text-center">
+        <div className="mt-3 p-2 bg-slate-800/50 rounded text-xs text-slate-400 text-center border border-slate-700">
           Powered by Chessify AI | Depth: 3
         </div>
       )}

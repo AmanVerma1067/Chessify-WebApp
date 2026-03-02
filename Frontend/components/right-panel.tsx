@@ -34,7 +34,7 @@ export default function RightPanel() {
         )}
       </AnimatePresence>
 
-      <Card className="h-full bg-gray-800/90 backdrop-blur-sm shadow-lg p-4">
+      <Card className="h-full bg-slate-900/80 backdrop-blur-md shadow-xl border-slate-800 p-4">
         <Tabs defaultValue="moves" className="h-full flex flex-col">
           <TabsList className="grid grid-cols-3">
             <TabsTrigger value="moves">Moves</TabsTrigger>
