@@ -119,9 +119,8 @@ io.on("connection", (socket) => {
     });
 
     socket.on("chat", ({ roomId, msg }) => {
-        // Note: ensure this matches the frontend listener
-        // User's frontend was listening to "chat", so we use "chat"
-        io.to(roomId).emit("chat", msg);
+        // Broadcast to everyone EXCEPT the sender (sender adds it locally)
+        socket.to(roomId).emit("chat-received", msg);
     });
 
     socket.on("disconnect", () => {

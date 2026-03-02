@@ -541,10 +541,13 @@ export function GameProvider({ children, mode = "ai", gameId }: GameProviderProp
 
   const sendChat = (message: string) => {
     if (gameType === "pvp") {
+      const chatMsg = { text: message, color: assignedColor, timestamp: Date.now() };
       pvpSocket.emit("chat", {
         roomId: gameId,
-        msg: { text: message, color: assignedColor, timestamp: Date.now() },
+        msg: chatMsg,
       });
+      // Add the message locally so the sender sees it immediately
+      setPvpChatMessages((prev) => [...prev, chatMsg]);
     }
   };
 
