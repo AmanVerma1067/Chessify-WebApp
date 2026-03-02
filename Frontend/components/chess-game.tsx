@@ -27,7 +27,14 @@ function ChessGameContent() {
     playerColor,
     handlePromotion,
     cancelPromotion,
+    game,
+    gameType,
+    assignedColor,
   } = useGame()
+
+  const currentTurn = game.turn() // 'w' or 'b'
+  const isMyTurn = gameType === "pvp" && assignedColor === currentTurn
+  const turnLabel = currentTurn === "w" ? "White" : "Black"
 
   return (
     <DndProvider backend={backend}>
@@ -36,6 +43,29 @@ function ChessGameContent() {
         <div className="flex flex-col md:flex-row flex-1 gap-4 p-4 max-w-7xl mx-auto w-full">
           <div className="w-full md:w-3/5 space-y-4">
             <MaterialDisplay />
+
+            {/* PvP turn indicator */}
+            {gameType === "pvp" && (
+              <div className={`flex items-center justify-between px-4 py-2.5 rounded-lg border transition-colors duration-300 ${isMyTurn
+                  ? "bg-emerald-950/40 border-emerald-800/60 text-emerald-300"
+                  : "bg-slate-800/60 border-slate-700 text-slate-400"
+                }`}>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-block w-2 h-2 rounded-full ${isMyTurn ? "bg-emerald-400 animate-pulse" : "bg-slate-500"}`} />
+                  <span className="text-sm font-medium">
+                    {assignedColor === "spectator"
+                      ? `${turnLabel}'s turn`
+                      : isMyTurn
+                        ? "Your Turn"
+                        : "Opponent's Turn"}
+                  </span>
+                </div>
+                <span className="text-xs text-slate-500">
+                  {assignedColor === "w" ? "You: White" : assignedColor === "b" ? "You: Black" : "Spectating"}
+                </span>
+              </div>
+            )}
+
             <Chessboard />
           </div>
           <div className="w-full md:w-2/5 mt-4 md:mt-0">

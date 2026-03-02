@@ -221,9 +221,15 @@ export function GameProvider({ children, mode = "ai", gameId }: GameProviderProp
     pvpSocket.emit("join-room", gameId);
 
     pvpSocket.on("role", (role: string) => {
-      if (role === "white") setAssignedColor("w");
-      else if (role === "black") setAssignedColor("b");
-      else setAssignedColor("spectator");
+      if (role === "white") {
+        setAssignedColor("w");
+        setBoardFlipped(false);
+      } else if (role === "black") {
+        setAssignedColor("b");
+        setBoardFlipped(true); // Flip board for Black player
+      } else {
+        setAssignedColor("spectator");
+      }
     });
 
     pvpSocket.on("sync-board", (fenStr: string) => {

@@ -3,7 +3,6 @@ import { useGame } from "@/components/game-context"
 import { ChessIcon } from "@/components/chess-icon"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatTime } from "@/lib/utils"
-import Link from "next/link"
 
 export default function Navbar() {
   const { gameMode, setGameMode, timeWhite, timeBlack, gameType } = useGame()
@@ -47,13 +46,13 @@ export default function Navbar() {
               </span>
             )}
 
-            {/* Back to home */}
-            <Link
-              href="/"
-              className="hidden md:inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+            {/* Back to home — full reload to reset state */}
+            <button
+              onClick={() => { window.location.href = "/" }}
+              className="hidden md:inline-flex items-center gap-1 text-sm text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
             >
               ← Home
-            </Link>
+            </button>
           </div>
         </div>
       </div>
