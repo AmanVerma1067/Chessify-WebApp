@@ -1,166 +1,245 @@
-# ♟️ Chessify AI - Web Chess Bot
+# ♟️ Chessify AI - Web Chess Application
 
-A web-based chess-playing application built with **Next.js (React)** on the frontend and **Flask + Stockfish** on the backend. This app lets users play against a bot that calculates moves using a combination of custom logic and the Stockfish engine.
+A full-featured web-based chess application built with **Next.js (React)** on the frontend, **Flask + Stockfish** for AI moves, and a dedicated **Node.js + Socket.IO** server for real-time multiplayer. Play against an AI or challenge a friend online with live spectator support.
 
 ---
 
 ## 🌐 Live Demo
 
 - **Frontend:** [chessify.aman1067.xyz](http://chessify.aman1067.xyz/)
-- **Backend API:** [https://chess-backend-tvdo.onrender.com](https://chess-backend-tvdo.onrender.com)
+- **AI Backend (Flask):** [https://chess-backend-tvdo.onrender.com](https://chess-backend-tvdo.onrender.com)
+- **PvP Backend (Node):** [https://chess-pvp-qhw7.onrender.com](https://chess-pvp-qhw7.onrender.com)
 
 ---
 
 ## 🚀 Features
 
-- ✅ Play chess against an AI
-- 🧠 Moves generation is powered by Minimax and alpha-beta-pruning with depth control and Opening moves played using a real chess opening book.
-- ♟️ Uses Stockfish (local or remote) for move analysis and fallback.
-- 🎨 Interactive UI with drag-and-drop and click-to-move.
-- 💡 Highlights legal moves.
-- ⚙️ Fully responsive and modern interface
-- 🌙 Dark mode only support
+### 🤖 AI Mode
+- Play chess against an AI opponent
+- Opening moves from a real Polyglot chess opening book
+- Minimax algorithm with alpha-beta pruning (depth 3)
+- Stockfish engine integration for strong move analysis
+- Fallback to custom Minimax if Stockfish is unavailable
+
+### 👥 Player vs Player Mode
+- Create a game and share a link — no account needed
+- Second player joins via the shared URL
+- Server-side move validation using `chess.js` (no cheating possible)
+- Real-time move sync via WebSockets
+- Live chat for both players during the game
+- Spectator mode — anyone with the link beyond the two players watches live
+- Spectator count shown in the navbar
+- Opponent disconnection detection with on-screen notification
+
+### 🎮 General
+- Drag-and-drop and click-to-move piece interaction
+- Legal move highlighting
+- Pawn promotion dialog
+- Material advantage indicator
+- Move history in algebraic notation
+- Game timers — Blitz (5 min), Rapid (10 min), Unlimited
+- Resign and new game controls
+- Fully responsive layout
+- Dark mode only
 
 ---
 
 ## 🧠 Tech Stack
 
 ### Frontend
-- ⚛️ React + Next.js (App Router)
-- ♟️ [`chess.js`](https://github.com/jhlywa/chess.js) for board state
-- 💅 TailwindCSS or CSS Modules
-- 🎮 `react-chessboard` or custom board
+- ⚛️ React + Next.js 13 (App Router)
+- ♟️ [`chess.js`](https://github.com/jhlywa/chess.js) for board state and move validation
+- 🔌 [`socket.io-client`](https://socket.io/) for real-time PvP communication
+- 🎨 Tailwind CSS + shadcn/ui components
+- 🎞️ Framer Motion for animations
+- 🖱️ react-dnd for drag-and-drop
 
-### Backend
+### AI Backend (Flask)
 - 🐍 Flask (Python 3.10+)
-- ♟️ [`python-chess`](https://github.com/niklasf/python-chess)
-- ⚙️ Stockfish engine (ELO 1500+)
-- 🔁 RESTful API (`/get_bot_move`)
-- 🔓 CORS enabled for frontend communication
+- ♟️ [`python-chess`](https://github.com/niklasf/python-chess) for move generation and board logic
+- ⚙️ Stockfish engine (ELO 1800)
+- 📘 Polyglot opening book integration
+- 🔁 RESTful API (`POST /get_bot_move`)
+- 🔓 CORS enabled
+
+### PvP Backend (Node.js)
+- 🟩 Node.js + Express
+- 🔌 Socket.IO for WebSocket room management
+- ♟️ [`chess.js`](https://github.com/jhlywa/chess.js) for server-side move validation
+- 🏠 Room-based architecture (players + spectators per game)
 
 ---
 
 ## 📂 Folder Structure
 
 ```
-
 /chessify-ai
-├── Backend/
-│   ├── main.py
+├── Backend/                    # Flask AI server
+│   ├── main.py                 # Flask app + /get_bot_move endpoint
 │   ├── bot/
-│   │   ├── minimax.py
-│   │   ├── stockfish\_bot.py
-│   │   └── opening\_book.py
-│   └── stockfish/  # includes stockfish binary
-├── Frontend/
-│   ├── app/
-│   ├── components/
-│   ├── public/
-│   ├── styles/
+│   │   ├── minimax.py          # Minimax with alpha-beta pruning
+│   │   ├── evaluation.py       # Board evaluation logic
+│   │   ├── stockfish_bot.py    # Stockfish integration
+│   │   └── opening_book.py     # Polyglot opening book reader
+│   ├── assets/
+│   │   └── openings.pgn        # Opening book data
+│   ├── stockfish/              # Stockfish binary
+│   ├── requirements.txt
+│   └── render.yaml
+│
+├── PvpServer/                  # Node.js real-time server
+│   ├── server.js               # Socket.IO room + game logic
 │   └── package.json
-├── README.md
-
-````
+│
+├── Frontend/                   # Next.js app
+│   ├── app/
+│   │   ├── page.tsx            # Landing + mode selection
+│   │   └── game/[gameId]/      # Dynamic PvP game room route
+│   ├── components/
+│   │   ├── chess-game.tsx      # Root game component
+│   │   ├── game-context.tsx    # Global state + socket logic
+│   │   ├── chessboard.tsx      # Board renderer
+│   │   ├── chess-piece.tsx     # Draggable pieces
+│   │   ├── square.tsx          # Drop target squares
+│   │   ├── bot-chat.tsx        # AI analysis + PvP live chat
+│   │   ├── move-history.tsx    # Algebraic notation history
+│   │   ├── game-controls.tsx   # Timer, undo, resign
+│   │   ├── material-display.tsx
+│   │   ├── navbar.tsx
+│   │   ├── lobby.tsx           # Create/Join game UI
+│   │   └── spectator-bar.tsx   # Live spectator count
+│   ├── lib/
+│   │   ├── pvpSocket.ts        # Socket.io-client singleton
+│   │   └── utils.ts
+│   └── package.json
+│
+└── README.md
+```
 
 ---
 
-## 🛠️ Backend API
+## 🛠️ API Reference
 
-### Endpoint
+### AI Backend — Flask
 
+**Endpoint**
 ```http
 POST /get_bot_move
 Content-Type: application/json
-````
-
-### Request Body
-
-```json
-{
-  "fen": "current FEN string"
-}
 ```
 
-### Response
+**Request**
+```json
+{ "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1" }
+```
 
+**Response**
 ```json
 {
-  "move": "e2e4",
-  "new_fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1"
+  "move": "e7e5",
+  "new_fen": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2"
 }
 ```
 
 ---
 
-## 🧪 Testing Backend Locally
+### PvP Backend — Socket.IO Events
 
-1. Make sure `stockfish` is present inside `Backend/stockfish/`.
-2. Run the backend:
+| Direction | Event | Payload | Description |
+|---|---|---|---|
+| Client → Server | `join-room` | `roomId` | Join or create a game room |
+| Client → Server | `move` | `{ roomId, from, to, promotion }` | Submit a move |
+| Client → Server | `chat` | `{ roomId, msg }` | Send a chat message |
+| Server → Client | `role` | `"white" \| "black" \| "spectator"` | Assigned role on join |
+| Server → Client | `opponent-joined` | — | Second player has connected |
+| Server → Client | `opponent-move` | `{ from, to, promotion }` | Opponent's validated move |
+| Server → Client | `move-confirmed` | `{ fen }` | Server confirms your move |
+| Server → Client | `sync-board` | `fen` | Current board state on late join |
+| Server → Client | `chat` | `{ text, color, timestamp }` | Incoming chat message |
+| Server → Client | `spectator-count` | `number` | Updated spectator count |
+| Server → Client | `opponent-disconnected` | — | Opponent left the game |
 
+---
+
+## 🧪 Running Locally
+
+### AI Backend
 ```bash
 cd Backend
+pip install -r requirements.txt
 python main.py
+# Runs on http://localhost:5000
 ```
 
-3. Test in Postman:
+### PvP Server
+```bash
+cd PvpServer
+npm install
+node server.js
+# Runs on http://localhost:3001
+```
 
-* URL: `http://localhost:5000/get_bot_move`
-* Method: POST
-* Body (JSON):
-
-```json
-{ "fen": "startpos" }
+### Frontend
+```bash
+cd Frontend
+npm install
+# Create .env.local:
+# NEXT_PUBLIC_FLASK_URL=http://localhost:5000
+# NEXT_PUBLIC_PVP_URL=http://localhost:3001
+npm run dev
+# Runs on http://localhost:3000
 ```
 
 ---
 
 ## 🔄 Deployment
 
-### Backend (Render)
+### AI Backend — Render (Python)
+```yaml
+# render.yaml
+services:
+  - type: web
+    name: chess-bot-backend
+    env: python
+    buildCommand: "chmod +x Backend/stockfish/stockfish-ubuntu-x86-64"
+    startCommand: gunicorn main:app --bind 0.0.0.0:$PORT
+```
 
-1. Push your backend folder to a GitHub repo.
+### PvP Server — Render (Node)
+```yaml
+services:
+  - type: web
+    name: chess-pvp-server
+    env: node
+    buildCommand: cd PvpServer && npm install
+    startCommand: cd PvpServer && node server.js
+```
 
-2. Create a **Render Web Service**:
-
-   * Environment: Python
-   * Start Command:
-
-     ```bash
-     gunicorn main:app --bind 0.0.0.0:$PORT
-     ```
-   * Add `stockfish` binary to `Backend/stockfish/` and ensure `os.path.join` correctly finds it.
-
-3. Confirm it's running at:
-   `https://your-backend.onrender.com/get_bot_move`
-
----
-
-### Frontend (Vercel)
-
-1. Push the `Frontend/` folder to a separate GitHub repo (recommended).
-2. Connect to [Vercel](https://vercel.com)
-3. Set:
-
-   * **Root Directory**: `Frontend`
-   * **Install Command**: `pnpm install`
-   * **Build Command**: `pnpm build`
-   * **Output Directory**: `.next`
+### Frontend — Vercel
+- Root Directory: `Frontend`
+- Install Command: `pnpm install`
+- Build Command: `pnpm build`
+- Output Directory: `.next`
+- Environment variables: `NEXT_PUBLIC_FLASK_URL`, `NEXT_PUBLIC_PVP_URL`
 
 ---
 
 ## 🐞 Troubleshooting
 
-* `Stockfish process has crashed`: Ensure binary is compatible with Render’s OS.
-* `ERR_PNPM_OUTDATED_LOCKFILE`: Run `pnpm install` locally and push the new `pnpm-lock.yaml`.
+- **Stockfish process crashed** — ensure the binary inside `Backend/stockfish/` matches Render's Linux x86-64 architecture
+- **ERR_PNPM_OUTDATED_LOCKFILE** — run `pnpm install` locally and push the updated `pnpm-lock.yaml`
+- **WebSocket connection refused** — verify `NEXT_PUBLIC_PVP_URL` is set correctly in Vercel environment variables
+- **Moves not syncing in PvP** — check browser console for socket connection errors; Render free tier may need a moment to wake up
 
 ---
 
 ## ✨ Future Improvements
 
-* Multiplayer mode via socket
-* Adjustable elo bot
-* Sound effects
-* Save/load games
+- Adjustable AI difficulty (ELO slider)
+- Random matchmaking (play vs stranger)
+- Sound effects
+- Save and replay games (PGN export)
+- Player usernames and profiles
 
 ---
 
@@ -168,7 +247,7 @@ python main.py
 
 **Aman Verma**
 - GitHub: [@AmanVerma1067](https://github.com/AmanVerma1067)
-- LinkedIn: [linkedin](https://linkedin.com/in/amanverma1067)
+- LinkedIn: [linkedin.com/in/amanverma1067](https://linkedin.com/in/amanverma1067)
 
 ---
 
