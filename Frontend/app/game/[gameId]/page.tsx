@@ -15,17 +15,43 @@ export default function GamePage() {
   const [opponentJoined, setOpponentJoined] = useState(false)
   const [role, setRole] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const [socketReady, setSocketReady] = useState(false)
 
   useEffect(() => {
-    pvpSocket.connect()
-    pvpSocket.emit("join-room", gameId)
+    // Disconnect any existing connection first
+    if (pvpSocket.connected) {
+      pvpSocket.disconnect()
+    }
 
-    pvpSocket.on("role", (r: string) => setRole(r))
-    pvpSocket.on("opponent-joined", () => setOpponentJoined(true))
+    pvpSocket.connect()
+
+    pvpSocket.on("connect", () => {
+      console.log("Socket connected:", pvpSocket.id)
+      setSocketReady(true)
+      pvpSocket.emit("join-room", gameId)
+    })
+
+    pvpSocket.on("role", (r: string) => {
+      console.log("Received role:", r)
+      setRole(r)
+    })
+
+    pvpSocket.on("opponent-joined", () => {
+      console.log("Opponent joined!")
+      setOpponentJoined(true)
+    })
+
+    pvpSocket.on("disconnect", () => {
+      console.log("Socket disconnected")
+      setSocketReady(false)
+    })
 
     return () => {
+      pvpSocket.off("connect")
       pvpSocket.off("role")
       pvpSocket.off("opponent-joined")
+      pvpSocket.off("disconnect")
+      pvpSocket.disconnect()
     }
   }, [gameId])
 
@@ -35,10 +61,43 @@ export default function GamePage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  // Show waiting screen only for creator (white) before opponent joins
-  const isWaiting = role === "white" && !opponentJoined
+  // Still connecting
+  if (!role) {
+    return (
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <main className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-4">
+          <ChessIcon className="h-12 w-12 text-cyan-400 animate-pulse" />
+          <p className="text-gray-300 text-lg">Connecting to room <span className="text-cyan-400 font-mono font-bold">{gameId}</span>...</p>
+          <p className="text-gray-500 text-sm">Socket: {socketReady ? "✅ connected" : "⏳ connecting"}</p>
+        </main>
+      </ThemeProvider>
+    )
+  }
 
-  if (isWaiting) {
+  // Spectator — go straight to game
+  if (role === "spectator") {
+    return (
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <main className="min-h-screen bg-gray-900">
+          <ChessGame mode="pvp" gameId={gameId} />
+        </main>
+      </ThemeProvider>
+    )
+  }
+
+  // Black player — go straight to game (no waiting needed)
+  if (role === "black") {
+    return (
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+        <main className="min-h-screen bg-gray-900">
+          <ChessGame mode="pvp" gameId={gameId} />
+        </main>
+      </ThemeProvider>
+    )
+  }
+
+  // White player waiting for opponent
+  if (role === "white" && !opponentJoined) {
     return (
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
         <main className="min-h-screen bg-gray-900 flex flex-col items-center justify-center gap-8">
@@ -66,8 +125,8 @@ export default function GamePage() {
             </button>
 
             <div className="flex gap-2 items-center">
-              <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
-              <span className="text-gray-400 text-sm">You are playing as White</span>
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+              <span className="text-gray-400 text-sm">You are White — connected as <span className="font-mono text-xs text-gray-500">{pvpSocket.id}</span></span>
             </div>
           </motion.div>
         </main>
@@ -75,6 +134,7 @@ export default function GamePage() {
     )
   }
 
+  // White player — opponent has joined, start game
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <main className="min-h-screen bg-gray-900">
