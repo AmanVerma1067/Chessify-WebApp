@@ -13,10 +13,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Undo2, RefreshCw, Flag, RotateCcw, Home } from "lucide-react"
+import { Undo2, RefreshCw, Flag, RotateCcw } from "lucide-react"
 import { formatTime } from "@/lib/utils"
 import { motion } from "framer-motion"
-import { useRouter } from "next/navigation"
 
 export default function GameControls() {
   const {
@@ -35,7 +34,7 @@ export default function GameControls() {
     gameType,
   } = useGame()
 
-  const router = useRouter()
+
   const [resignDialogOpen, setResignDialogOpen] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
 
@@ -135,15 +134,8 @@ export default function GameControls() {
           Resign Game
         </Button>
 
-        {/* #12: Back to home button */}
-        <Button
-          variant="outline"
-          onClick={() => router.push("/")}
-          className="flex items-center text-base font-medium h-12 text-gray-400 hover:text-white hover:bg-gray-600/30 transition-all duration-200"
-        >
-          <Home className="mr-3 h-5 w-5" />
-          Back to Home
-        </Button>
+
+
       </div>
 
       <motion.div
