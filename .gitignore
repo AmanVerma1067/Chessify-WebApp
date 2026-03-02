@@ -9,6 +9,8 @@ Frontend/node_modules/
 Frontend/.next/
 Frontend/out/
 
+# ennvironment files
+Frontend/.env.local
 # logs
 Frontend/npm-debug.log*
 Frontend/yarn-debug.log*

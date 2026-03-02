@@ -13,9 +13,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Undo2, RefreshCw, Flag, RotateCcw } from "lucide-react"
+import { Undo2, RefreshCw, Flag, RotateCcw, Home } from "lucide-react"
 import { formatTime } from "@/lib/utils"
 import { motion } from "framer-motion"
+import { useRouter } from "next/navigation"
 
 export default function GameControls() {
   const {
@@ -34,6 +35,7 @@ export default function GameControls() {
     gameType,
   } = useGame()
 
+  const router = useRouter()
   const [resignDialogOpen, setResignDialogOpen] = useState(false)
   const [resetDialogOpen, setResetDialogOpen] = useState(false)
 
@@ -87,27 +89,32 @@ export default function GameControls() {
       )}
 
       <div className="flex flex-col space-y-4">
-        <Button
-          variant="outline"
-          onClick={() => undoMove()}
-          disabled={gameState !== "playing" || history.length === 0 || gameType === "pvp"}
-          className="flex items-center text-base font-medium h-12 hover:bg-blue-600/20 transition-all duration-200"
-        >
-          <Undo2 className="mr-3 h-5 w-5" />
-          Undo Last Move
-          {gameType === "pvp" && <span className="ml-2 text-xs text-gray-500">(PvP)</span>}
-        </Button>
+        {/* #11: Show tooltip explaining why undo/flip are unavailable in PvP */}
+        <div title={gameType === "pvp" ? "Not available in PvP" : undefined}>
+          <Button
+            variant="outline"
+            onClick={() => undoMove()}
+            disabled={gameState !== "playing" || history.length === 0 || gameType === "pvp"}
+            className="w-full flex items-center text-base font-medium h-12 hover:bg-blue-600/20 transition-all duration-200"
+          >
+            <Undo2 className="mr-3 h-5 w-5" />
+            Undo Last Move
+            {gameType === "pvp" && <span className="ml-auto text-xs text-gray-500 italic">N/A in PvP</span>}
+          </Button>
+        </div>
 
-        <Button
-          variant="outline"
-          onClick={() => flipBoard()}
-          disabled={gameType === "pvp"}
-          className="flex items-center text-base font-medium h-12 hover:bg-green-600/20 transition-all duration-200"
-        >
-          <RotateCcw className="mr-3 h-5 w-5" />
-          Flip Board
-          {gameType === "pvp" && <span className="ml-2 text-xs text-gray-500">(PvP)</span>}
-        </Button>
+        <div title={gameType === "pvp" ? "Not available in PvP" : undefined}>
+          <Button
+            variant="outline"
+            onClick={() => flipBoard()}
+            disabled={gameType === "pvp"}
+            className="w-full flex items-center text-base font-medium h-12 hover:bg-green-600/20 transition-all duration-200"
+          >
+            <RotateCcw className="mr-3 h-5 w-5" />
+            Flip Board
+            {gameType === "pvp" && <span className="ml-auto text-xs text-gray-500 italic">N/A in PvP</span>}
+          </Button>
+        </div>
 
         <Button
           variant="outline"
@@ -126,6 +133,16 @@ export default function GameControls() {
         >
           <Flag className="mr-3 h-5 w-5" />
           Resign Game
+        </Button>
+
+        {/* #12: Back to home button */}
+        <Button
+          variant="outline"
+          onClick={() => router.push("/")}
+          className="flex items-center text-base font-medium h-12 text-gray-400 hover:text-white hover:bg-gray-600/30 transition-all duration-200"
+        >
+          <Home className="mr-3 h-5 w-5" />
+          Back to Home
         </Button>
       </div>
 

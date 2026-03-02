@@ -149,15 +149,14 @@ export default function BotChat() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className={`p-3 rounded-lg max-w-[90%] ${
-                message.sender === "bot"
+              className={`p-3 rounded-lg max-w-[90%] ${message.sender === "bot"
                   ? "ml-auto bg-gradient-to-br from-cyan-900 to-blue-800 border border-cyan-700"
                   : message.sender === "pvp"
-                  ? message.color === assignedColor
-                    ? "ml-auto bg-gradient-to-br from-violet-900 to-violet-800 border border-violet-700"
+                    ? message.color === assignedColor
+                      ? "ml-auto bg-gradient-to-br from-violet-900 to-violet-800 border border-violet-700"
+                      : "bg-gradient-to-r from-gray-700 to-gray-600 border border-gray-600"
                     : "bg-gradient-to-r from-gray-700 to-gray-600 border border-gray-600"
-                  : "bg-gradient-to-r from-gray-700 to-gray-600 border border-gray-600"
-              }`}
+                }`}
             >
               <div className="flex items-start space-x-2">
                 {message.sender === "pvp" ? (
@@ -197,16 +196,15 @@ export default function BotChat() {
         <div className="mt-3 flex gap-2">
           <input
             type="text"
-            placeholder="Type a message..."
+            placeholder={assignedColor === "spectator" ? "Spectating — type to chat..." : "Type a message..."}
             value={pvpInput}
             onChange={(e) => setPvpInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSendChat()}
-            disabled={assignedColor === "spectator"}
-            className="flex-1 px-3 py-2 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-violet-500 disabled:opacity-40"
+            className="flex-1 px-3 py-2 rounded-md bg-gray-700 border border-gray-600 text-white placeholder-gray-400 text-sm focus:outline-none focus:border-violet-500"
           />
           <button
             onClick={handleSendChat}
-            disabled={!pvpInput.trim() || assignedColor === "spectator"}
+            disabled={!pvpInput.trim()}
             className="px-3 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 text-white rounded-md transition-colors"
           >
             <Send className="h-4 w-4" />

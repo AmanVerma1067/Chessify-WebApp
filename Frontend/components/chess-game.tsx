@@ -31,7 +31,7 @@ function ChessGameContent() {
 
   return (
     <DndProvider backend={backend}>
-      <div className="flex flex-col min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
+      <div className="flex flex-col min-h-screen bg-slate-950">
         <Navbar />
         <div className="flex flex-col md:flex-row flex-1 gap-4 p-4 max-w-7xl mx-auto w-full">
           <div className="w-full md:w-3/5 space-y-4">

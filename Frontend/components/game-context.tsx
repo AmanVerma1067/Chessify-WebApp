@@ -257,9 +257,15 @@ export function GameProvider({ children, mode = "ai", gameId }: GameProviderProp
       setFen(confirmedFen);
     });
 
-    pvpSocket.on("chat-received", (msg: ChatMessage) => {
-      setPvpChatMessages((prev) => [...prev, msg]);
-    });
+    const handleChat = (msg: ChatMessage) => {
+      // Prevent duplicates by checking if we just added this message ID
+      setPvpChatMessages((prev) => {
+        if (prev.some(m => m.timestamp === msg.timestamp && m.text === msg.text)) return prev;
+        return [...prev, msg];
+      });
+    };
+
+    pvpSocket.on("chat-received", handleChat);
 
     pvpSocket.on("spectator-count", (count: number) =>
       setSpectatorCount(count)
@@ -379,6 +385,31 @@ export function GameProvider({ children, mode = "ai", gameId }: GameProviderProp
     };
   }, [isRunning, gameState, game, gameMode, gameType]);
 
+  // #4: PvP timer — starts once opponent is connected, stops on game over
+  useEffect(() => {
+    if (gameType !== "pvp") return;
+    if (!opponentConnected) return;
+    if (gameState !== "playing" && gameState !== "check") return;
+
+    const timer = setInterval(() => {
+      if (game.turn() === "w") {
+        setTimeWhite((prev) =>
+          prev <= 1
+            ? (setGameState("timeout"), setTimeoutColor("w"), 0)
+            : prev - 1
+        );
+      } else {
+        setTimeBlack((prev) =>
+          prev <= 1
+            ? (setGameState("timeout"), setTimeoutColor("b"), 0)
+            : prev - 1
+        );
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [gameType, opponentConnected, gameState, game]);
+
   const isPawnPromotion = (from: Square, to: Square): boolean => {
     const piece = game.get(from);
     if (!piece || piece.type !== "p") return false;
@@ -489,6 +520,8 @@ export function GameProvider({ children, mode = "ai", gameId }: GameProviderProp
   };
 
   const changeGameMode = (mode: GameMode) => {
+    // #3: Block game mode switching during a PvP game
+    if (gameType === "pvp") return;
     setGameModeState(mode);
     const newTime = getInitialTime(mode);
     setTimeWhite(newTime);
