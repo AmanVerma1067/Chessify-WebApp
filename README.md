@@ -74,7 +74,7 @@ A full-featured web-based chess application built with **Next.js (React)** on th
 
 ```
 /chessify-ai
-├── Backend/                    # Flask AI server
+├── Chess-AI/                    # Flask AI server
 │   ├── main.py                 # Flask app + /get_bot_move endpoint
 │   ├── bot/
 │   │   ├── minimax.py          # Minimax with alpha-beta pruning
@@ -87,7 +87,7 @@ A full-featured web-based chess application built with **Next.js (React)** on th
 │   ├── requirements.txt
 │   └── render.yaml
 │
-├── PvpServer/                  # Node.js real-time server
+├── Chess-PvP/                  # Node.js real-time server
 │   ├── server.js               # Socket.IO room + game logic
 │   └── package.json
 │
