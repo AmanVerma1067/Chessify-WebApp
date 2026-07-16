@@ -4,7 +4,7 @@ Chessify AI is a modern web-based chess game built with **Next.js 13+**, featuri
 
 ## 🚀 Features
 
-- 🧠 AI Opponent using public chess API
+- 🧠 AI Opponent using custom Flask AI server (Minimax/Stockfish) with public API fallback
 - 🎮 Interactive chessboard (drag & drop + click-to-move)
 - 💬 Chat panel with bot move explanations
 - 📋 Move history in algebraic notation
@@ -21,7 +21,7 @@ Chessify AI is a modern web-based chess game built with **Next.js 13+**, featuri
 - **Tailwind CSS + Shadcn UI**
 - **chess.js** for game logic
 - **Framer Motion** for animations
-- **Public Chess API** for bot integration
+- **Flask AI Backend + Public Fallback** for bot integration
 
 ## 📁 Project Structure
 
