@@ -1,0 +1,2 @@
+# Mark vendored Stockfish engine source and binary so GitHub Linguist ignores them in repo language stats
+Chess-AI/stockfish/** linguist-vendored

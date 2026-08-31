@@ -3,6 +3,7 @@ const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
 const { Chess } = require("chess.js");
+const db = require("./db");
 
 const app = express();
 app.use(cors());
@@ -22,7 +23,8 @@ rooms = {
       black: null
     },
     spectators: [],
-    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    fen: "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+    plyCount: 0
   }
 }
 */
@@ -40,8 +42,10 @@ io.on("connection", (socket) => {
             rooms[roomId] = {
                 players: { white: null, black: null },
                 spectators: [],
-                fen: INITIAL_FEN
+                fen: INITIAL_FEN,
+                plyCount: 0
             };
+            db.recordGameStart(roomId);
         }
 
         const room = rooms[roomId];
@@ -106,6 +110,27 @@ io.on("connection", (socket) => {
             if (!result) return; // Invalid move
 
             room.fen = game.fen();
+            room.plyCount = (room.plyCount || 0) + 1;
+
+            // Optional persistence
+            db.recordMove(roomId, room.plyCount, result.san, room.fen);
+
+            // Check game termination for persistence
+            if (game.isGameOver()) {
+                let outcome = "1/2-1/2";
+                let reason = "draw";
+                if (game.isCheckmate()) {
+                    outcome = game.turn() === "b" ? "1-0" : "0-1";
+                    reason = "checkmate";
+                } else if (game.isStalemate()) {
+                    reason = "stalemate";
+                } else if (game.isThreefoldRepetition()) {
+                    reason = "threefold_repetition";
+                } else if (game.isInsufficientMaterial()) {
+                    reason = "insufficient_material";
+                }
+                db.recordGameEnd(roomId, outcome, reason);
+            }
 
             // Broadcast move to opponent and spectators
             socket.to(roomId).emit("opponent-move", { from, to, promotion });
@@ -144,6 +169,9 @@ io.on("connection", (socket) => {
             if (wasPlayer) {
                 // Notify the remaining player/spectators that a player left
                 io.to(roomId).emit("opponent-disconnected");
+                if (room.plyCount > 0) {
+                    db.recordGameEnd(roomId, "aborted", "abandoned");
+                }
             }
 
             // Update spectator count for remaining users

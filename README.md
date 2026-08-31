@@ -89,6 +89,8 @@ A full-featured web-based chess application built with **Next.js (React)** on th
 │
 ├── Chess-PvP/                  # Node.js real-time server
 │   ├── server.js               # Socket.IO room + game logic
+│   ├── db.js                   # Optional PostgreSQL event client
+│   ├── schema.sql              # SQL schema + analytical queries
 │   └── package.json
 │
 ├── Frontend/                   # Next.js app
@@ -165,7 +167,7 @@ Content-Type: application/json
 
 ### AI Backend
 ```bash
-cd Backend
+cd Chess-AI
 pip install -r requirements.txt
 python main.py
 # Runs on http://localhost:5000
@@ -173,11 +175,18 @@ python main.py
 
 ### PvP Server
 ```bash
-cd PvpServer
+cd Chess-PvP
 npm install
 node server.js
 # Runs on http://localhost:3001
 ```
+
+> **Optional Persistence (PostgreSQL):**
+> To persist game outcomes and individual plies for analytics, apply [`Chess-PvP/schema.sql`](Chess-PvP/schema.sql) to a Postgres database and run:
+> ```bash
+> PERSIST_GAMES=true DATABASE_URL="postgresql://user:password@localhost:5432/chessify" node server.js
+> ```
+> If `PERSIST_GAMES` is unset or false, the server runs completely in-memory.
 
 ### Frontend
 ```bash
@@ -192,6 +201,15 @@ npm run dev
 
 ---
 
+## 🗄️ Optional Game-Event Data Model
+
+For game analytics and event modeling, [`Chess-PvP/schema.sql`](Chess-PvP/schema.sql) defines:
+- **`moves`**: Append-only event table capturing every ply (composite PK on `game_id, ply_number`, clock snapshot, SAN, FEN).
+- **`games`**: Mutable dimension/state row tracking game lifecycle, termination reasons, and outcomes.
+- **Analytical Queries**: Includes reference queries for average game duration by time control, opening popularity across the first 3 plies, win rate by piece color, and move-by-move time pressure analysis using SQL window functions (`LAG()`).
+
+---
+
 ## 🔄 Deployment
 
 ### AI Backend — Render (Python)
@@ -201,7 +219,7 @@ services:
   - type: web
     name: chess-bot-backend
     env: python
-    buildCommand: "chmod +x Backend/stockfish/stockfish-ubuntu-x86-64"
+    buildCommand: "chmod +x Chess-AI/stockfish/stockfish-ubuntu-x86-64"
     startCommand: gunicorn main:app --bind 0.0.0.0:$PORT
 ```
 
@@ -211,8 +229,8 @@ services:
   - type: web
     name: chess-pvp-server
     env: node
-    buildCommand: cd PvpServer && npm install
-    startCommand: cd PvpServer && node server.js
+    buildCommand: cd Chess-PvP && npm install
+    startCommand: cd Chess-PvP && node server.js
 ```
 
 ### Frontend — Vercel
@@ -226,7 +244,7 @@ services:
 
 ## 🐞 Troubleshooting
 
-- **Stockfish process crashed** — ensure the binary inside `Backend/stockfish/` matches Render's Linux x86-64 architecture
+- **Stockfish process crashed** — ensure the binary inside `Chess-AI/stockfish/` matches Render's Linux x86-64 architecture
 - **ERR_PNPM_OUTDATED_LOCKFILE** — run `pnpm install` locally and push the updated `pnpm-lock.yaml`
 - **WebSocket connection refused** — verify `NEXT_PUBLIC_PVP_URL` is set correctly in Vercel environment variables
 - **Moves not syncing in PvP** — check browser console for socket connection errors; Render free tier may need a moment to wake up
